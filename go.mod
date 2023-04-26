@@ -2,10 +2,7 @@ module github.com/Fajurion/voice-node
 
 go 1.20
 
-require (
-	github.com/Fajurion/pipes v0.0.0-20230426124752-09b7e4bb9e10
-	github.com/gofiber/fiber/v2 v2.44.0
-)
+require github.com/gofiber/fiber/v2 v2.44.0
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
@@ -25,3 +22,6 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 )
+
+replace github.com/Fajurion/pipes => ./pipes
+replace fajurion.com/node-integration => ./node-integration
