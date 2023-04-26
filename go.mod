@@ -22,6 +22,3 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 )
-
-replace github.com/Fajurion/pipes => ./pipes
-replace fajurion.com/node-integration => ./node-integration
