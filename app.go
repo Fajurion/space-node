@@ -11,9 +11,8 @@ func main() {
 
 	app := fiber.New()
 
-	pipes.SetupCurrent("app", "app")
-
 	if integration.Setup() {
+		pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
 		return
 	}
 
