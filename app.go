@@ -14,15 +14,19 @@ import (
 )
 
 var APP_ID uint = 0
+var nodeID uint = 0
 
 func main() {
 
 	app := fiber.New()
 
-	if integration.Setup() {
+	if !integration.Setup() {
 		pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
 		return
 	}
+
+	nID, _ := strconv.Atoi(integration.NODE_ID)
+	nodeID = uint(nID)
 
 	// Query current node
 	_, _, currentApp, domain := integration.GetCurrent()
@@ -32,14 +36,17 @@ func main() {
 	res := integration.SetOnline()
 	parseNodes(res)
 
-	pipes.SetupSocketless(domain)
+	pipes.SetupSocketless(domain + "/socketless")
 
 	// Check if test mode or production
-	port, err := strconv.Atoi(strings.Split(pipes.CurrentNode.WS, ":")[1])
+	args := strings.Split(domain, ":")
+	port, err := strconv.Atoi(args[1])
 	if err != nil {
 		log.Println("Error: Couldn't parse port of current node")
 		return
 	}
+
+	pipes.SetupUDP(fmt.Sprintf("%s:%d", args[0], port+1))
 
 	if integration.Testing {
 

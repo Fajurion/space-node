@@ -2,6 +2,6 @@ package routes
 
 import "github.com/gofiber/fiber/v2"
 
-func SetupRoutes(fiber.Router) {
-
+func SetupRoutes(router fiber.Router) {
+	router.Post("/socketless", socketlessEvent)
 }
