@@ -11,7 +11,7 @@ var ErrClientNotFound = errors.New("client.not_found")
 
 type Client struct {
 	Username    string
-	Address     *net.UDPAddr
+	Address     net.Addr
 	LastMessage int64
 }
 

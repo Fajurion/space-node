@@ -13,64 +13,67 @@ func Listen(domain string, port int) {
 		IP:   net.ParseIP(domain),
 	}
 
+	log.Println("Starting UDP server..")
+
 	// Start udp server
-	go func() {
+	udpServ, err := net.ListenUDP("udp", &addr)
+	if err != nil {
+		log.Println("[udp] Error: ", err)
+		panic(err)
+	}
+	defer udpServ.Close()
 
-		// Start udp server
-		udpServ, err := net.ListenUDP("udp", &addr)
+	buffer := make([]byte, 8*1024) // 8 kb buffer
+
+	log.Println("UDP server started")
+
+	for {
+		offset, clientAddr, err := udpServ.ReadFrom(buffer) // Use client addr to rate limit in the future
 		if err != nil {
-			panic(err)
+			log.Println("[udp] Error: ", err)
+			continue
 		}
-		defer udpServ.Close()
 
-		buffer := make([]byte, 8*1024) // 8 kb buffer
+		// Extract message
+		msg := buffer[:offset]
 
-		for {
-			offset, clientAddr, err := udpServ.ReadFromUDP(buffer) // Use client addr to rate limit in the future
+		// Register client
+		if ExistsClient(clientAddr.String()) {
+
+			// Update last message
+			client, err := GetClient(clientAddr.String())
 			if err != nil {
-				log.Println("[udp] Error: ", err)
+				log.Println("[udp] Error getting client: ", err)
 				continue
 			}
 
-			// Extract message
-			msg := buffer[:offset]
-
-			// Register client
-			if ExistsClient(clientAddr.String()) {
-
-				// Update last message
-				client, err := GetClient(clientAddr.String())
-				if err != nil {
-					log.Println("[udp] Error getting client: ", err)
-					continue
-				}
-
-				// Check if sent too quickly
-				if time.Now().UnixMilli()-client.LastMessage < 50 {
-					// TODO: Block
-					continue
-				}
-
-				// Echo (for now)
-				_, err = udpServ.WriteToUDP(msg, &addr)
-				if err != nil {
-					log.Println("[udp] Error echoing message: ", err)
-					continue
-				}
-
-				client.LastMessage = time.Now().UnixMilli()
+			// Check if sent too quickly
+			if time.Now().UnixMilli()-client.LastMessage < 50 {
+				// TODO: Block
 				continue
 			}
 
-			// Data will be retrieved from node_backend later
-			AddClient(clientAddr.String(), Client{
-				Username:    "just_for_testing",
-				Address:     clientAddr,
-				LastMessage: time.Now().UnixMilli(),
-			})
+			log.Println("[udp]", string(msg), offset)
 
-			// TODO: Add handler
+			// Echo (for now)
+			_, err = udpServ.WriteTo(msg, clientAddr)
+			if err != nil {
+				log.Println("[udp] Error echoing message: ", err)
+				continue
+			}
+
+			client.LastMessage = time.Now().UnixMilli()
+			continue
 		}
-	}()
+
+		// Data will be retrieved from node_backend later
+		AddClient(clientAddr.String(), Client{
+			Username:    "just_for_testing",
+			Address:     clientAddr,
+			LastMessage: time.Now().UnixMilli(),
+		})
+
+		// TODO: Add handler
+	}
 
 }

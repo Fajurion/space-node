@@ -21,9 +21,11 @@ func main() {
 	app := fiber.New()
 
 	if !integration.Setup() {
-		pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
 		return
 	}
+
+	pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
+	log.Println("[voice-node] Starting..")
 
 	nID, _ := strconv.Atoi(integration.NODE_ID)
 	nodeID = uint(nID)
