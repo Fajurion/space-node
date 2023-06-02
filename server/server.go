@@ -4,9 +4,17 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"github.com/Fajurion/pipes/connection"
+	"github.com/Fajurion/pipes/receive"
 )
 
+const PrefixNode = 'n'
+const PrefixClient = 'c'
+
 func Listen(domain string, port int) {
+
+	connection.GeneralPrefix = []byte{PrefixNode, ':'}
 
 	addr := net.UDPAddr{
 		Port: port,
@@ -37,8 +45,31 @@ func Listen(domain string, port int) {
 		// Extract message
 		msg := buffer[:offset]
 
+		// Check if client wants to send to node
+		exists := ExistsClient(clientAddr.String())
+		node := msg[0] == PrefixNode
+
+		if exists && node {
+			RemoveClient(clientAddr.String())
+			continue
+		}
+
+		if node {
+			err := receive.ReceiveUDP(msg[2:])
+			if err != nil {
+				log.Println("[udp] Error receiving node message: ", err)
+			}
+
+			continue
+		}
+
+		if msg[0] != PrefixClient {
+			RemoveClient(clientAddr.String())
+			continue
+		}
+
 		// Register client
-		if ExistsClient(clientAddr.String()) {
+		if exists {
 
 			// Update last message
 			client, err := GetClient(clientAddr.String())
@@ -53,10 +84,10 @@ func Listen(domain string, port int) {
 				continue
 			}
 
-			log.Println("[udp]", string(msg), offset)
+			log.Println("[udp]", string(msg[2:]), offset)
 
 			// Echo (for now)
-			_, err = udpServ.WriteTo(msg, clientAddr)
+			_, err = udpServ.WriteTo(msg[2:], clientAddr)
 			if err != nil {
 				log.Println("[udp] Error echoing message: ", err)
 				continue
