@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -69,6 +71,17 @@ func main() {
 	pipes.SetupUDP(fmt.Sprintf("%s:%d", args[0], port+1))
 	pipes.DebugLogs = true
 
+	// Test encryption
+	first := testEncryption()
+	second := testEncryption()
+
+	if reflect.DeepEqual(first, second) {
+		log.Println("Error: Encryption is not working properly")
+		return
+	}
+
+	log.Println("[voice-node] Encryption is working properly!")
+
 	if integration.Testing {
 
 		// Start on localhost
@@ -80,6 +93,28 @@ func main() {
 		go server.Listen("0.0.0.0", port+1)
 		app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
 	}
+}
+
+// This function is used to test if the encryption is working properly and always different
+func testEncryption() []byte {
+
+	encrypted, err := connection.Encrypt(pipes.CurrentNode.ID, []byte("H"))
+	if err != nil {
+		log.Println("Error: Couldn't encrypt message")
+		return nil
+	}
+
+	log.Println("Encrypted message: " + base64.StdEncoding.EncodeToString(encrypted))
+
+	decrypted, err := connection.Decrypt(pipes.CurrentNode.ID, encrypted)
+	if err != nil {
+		log.Println("Error: Couldn't decrypt message")
+		return nil
+	}
+
+	log.Println("Decrypted message: " + string(decrypted))
+
+	return encrypted
 }
 
 // Shared function between all nodes
