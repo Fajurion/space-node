@@ -42,7 +42,7 @@ func main() {
 	res := integration.SetOnline()
 	parseNodes(res)
 
-	pipes.SetupSocketless(domain + "/socketless")
+	pipes.SetupSocketless("http://" + domain + "/socketless")
 
 	// Check if test mode or production
 	args := strings.Split(domain, ":")
@@ -69,7 +69,7 @@ func main() {
 	}()
 
 	pipes.SetupUDP(fmt.Sprintf("%s:%d", args[0], port+1))
-	pipes.DebugLogs = true
+	pipes.DebugLogs = integration.Testing
 
 	// Test encryption
 	first := testEncryption()
@@ -81,6 +81,12 @@ func main() {
 	}
 
 	log.Println("[voice-node] Encryption is working properly!")
+
+	// Enable disconnection handling
+	connection.DisconnectHandler = func(node pipes.Node) {
+		log.Println("[voice-node] Node " + node.ID + " disconnected")
+	}
+	connection.SetupDisconnections()
 
 	if integration.Testing {
 
@@ -141,7 +147,7 @@ func parseNodes(res map[string]interface{}) bool {
 		pipes.AddNode(pipes.Node{
 			ID:    fmt.Sprintf("%d", int(n["id"].(float64))),
 			Token: n["token"].(string),
-			SL:    fmt.Sprintf("http://%s:%d/sl", domain, port),
+			SL:    fmt.Sprintf("http://%s:%d/socketless", domain, port),
 			UDP:   fmt.Sprintf("%s:%d", domain, port+1),
 		})
 	}
