@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"log"
-
 	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/util"
 	"github.com/gofiber/fiber/v2"
@@ -29,7 +27,7 @@ func initalize(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	log.Println(req.UserID, "|", req.SessionIds)
+	util.Log.Println(req.UserID, "|", req.SessionIds)
 
 	tk := util.GenerateToken(200)
 

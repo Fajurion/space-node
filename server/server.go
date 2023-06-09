@@ -1,10 +1,10 @@
 package server
 
 import (
-	"log"
 	"net"
 	"time"
 
+	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipes/connection"
 	"github.com/Fajurion/pipes/receive"
 )
@@ -21,24 +21,24 @@ func Listen(domain string, port int) {
 		IP:   net.ParseIP(domain),
 	}
 
-	log.Println("Starting UDP server..")
+	util.Log.Println("Starting UDP server..")
 
 	// Start udp server
 	udpServ, err := net.ListenUDP("udp", &addr)
 	if err != nil {
-		log.Println("[udp] Error: ", err)
+		util.Log.Println("[udp] Error: ", err)
 		panic(err)
 	}
 	defer udpServ.Close()
 
 	buffer := make([]byte, 8*1024) // 8 kb buffer
 
-	log.Println("UDP server started")
+	util.Log.Println("UDP server started")
 
 	for {
 		offset, clientAddr, err := udpServ.ReadFrom(buffer) // Use client addr to rate limit in the future
 		if err != nil {
-			log.Println("[udp] Error: ", err)
+			util.Log.Println("[udp] Error: ", err)
 			continue
 		}
 
@@ -57,7 +57,7 @@ func Listen(domain string, port int) {
 		if node {
 			err := receive.ReceiveUDP(msg[2:])
 			if err != nil {
-				log.Println("[udp] Error receiving node message: ", err)
+				util.Log.Println("[udp] Error receiving node message: ", err)
 			}
 
 			continue
@@ -74,7 +74,7 @@ func Listen(domain string, port int) {
 			// Update last message
 			client, err := GetClient(clientAddr.String())
 			if err != nil {
-				log.Println("[udp] Error getting client: ", err)
+				util.Log.Println("[udp] Error getting client: ", err)
 				continue
 			}
 
@@ -84,12 +84,12 @@ func Listen(domain string, port int) {
 				continue
 			}
 
-			log.Println("[udp]", string(msg[2:]), offset)
+			util.Log.Println("[udp]", string(msg[2:]), offset)
 
 			// Echo (for now)
 			_, err = udpServ.WriteTo(msg[2:], clientAddr)
 			if err != nil {
-				log.Println("[udp] Error echoing message: ", err)
+				util.Log.Println("[udp] Error echoing message: ", err)
 				continue
 			}
 

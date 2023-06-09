@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -11,17 +10,18 @@ import (
 
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipes/connection"
+	"github.com/dgraph-io/badger/v4"
 	"github.com/gofiber/fiber/v2"
 
 	integration "fajurion.com/node-integration" // Propietary package (might be replaced with an open-source alternative in the future)
 	"fajurion.com/voice-node/routes"
 	"fajurion.com/voice-node/server"
+	"fajurion.com/voice-node/util"
 )
 
 var APP_ID uint = 0
 
 func main() {
-
 	app := fiber.New()
 	app.Route("/", routes.SetupRoutes)
 
@@ -30,13 +30,21 @@ func main() {
 	}
 
 	pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
-	log.Println("[voice-node] Starting..")
+	util.Log.Println("Starting..")
+
+	// Start badger
+	util.Log.Println("Starting badger memory database..")
+	opt := badger.DefaultOptions("").WithInMemory(true)
+	db, err := badger.Open(opt)
+	if err != nil {
+		panic(err)
+	}
 
 	// Query current node
 	_, _, currentApp, domain := integration.GetCurrent()
 	APP_ID = currentApp
 
-	log.Printf("[voice-node] Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
+	util.Log.Printf("[voice-node] Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
 
 	// Report online status
 	res := integration.SetOnline()
@@ -48,7 +56,7 @@ func main() {
 	args := strings.Split(domain, ":")
 	port, err := strconv.Atoi(args[1])
 	if err != nil {
-		log.Println("Error: Couldn't parse port of current node")
+		util.Log.Println("Error: Couldn't parse port of current node")
 		return
 	}
 
@@ -57,10 +65,10 @@ func main() {
 		time.Sleep(time.Second * 2)
 		pipes.IterateNodes(func(_ string, node pipes.Node) bool {
 
-			log.Println("[voice-node] Connecting to node " + node.ID)
+			util.Log.Println("Connecting to node " + node.ID)
 
 			if err := connection.ConnectUDP(node); err != nil {
-				log.Println("[voice-node] Error: Couldn't connect to node " + node.ID)
+				util.Log.Println("Error: Couldn't connect to node " + node.ID)
 				return false
 			}
 
@@ -76,17 +84,20 @@ func main() {
 	second := testEncryption()
 
 	if reflect.DeepEqual(first, second) {
-		log.Println("Error: Encryption is not working properly")
+		util.Log.Println("Error: Encryption is not working properly")
 		return
 	}
 
-	log.Println("[voice-node] Encryption is working properly!")
+	util.Log.Println("Encryption is working properly!")
 
 	// Enable disconnection handling
 	connection.DisconnectHandler = func(node pipes.Node) {
-		log.Println("[voice-node] Node " + node.ID + " disconnected")
+		util.Log.Println("Node " + node.ID + " disconnected")
 	}
 	connection.SetupDisconnections()
+
+	// Close badger when done
+	defer db.Close()
 
 	if integration.Testing {
 
@@ -106,19 +117,19 @@ func testEncryption() []byte {
 
 	encrypted, err := connection.Encrypt(pipes.CurrentNode.ID, []byte("H"))
 	if err != nil {
-		log.Println("Error: Couldn't encrypt message")
+		util.Log.Println("Error: Couldn't encrypt message")
 		return nil
 	}
 
-	log.Println("Encrypted message: " + base64.StdEncoding.EncodeToString(encrypted))
+	util.Log.Println("Encrypted message: " + base64.StdEncoding.EncodeToString(encrypted))
 
 	decrypted, err := connection.Decrypt(pipes.CurrentNode.ID, encrypted)
 	if err != nil {
-		log.Println("Error: Couldn't decrypt message")
+		util.Log.Println("Error: Couldn't decrypt message")
 		return nil
 	}
 
-	log.Println("Decrypted message: " + string(decrypted))
+	util.Log.Println("Decrypted message: " + string(decrypted))
 
 	return encrypted
 }
@@ -140,7 +151,7 @@ func parseNodes(res map[string]interface{}) bool {
 		domain := args[0]
 		port, err := strconv.Atoi(args[1])
 		if err != nil {
-			log.Println("Error: Couldn't parse port of node " + n["id"].(string))
+			util.Log.Println("Error: Couldn't parse port of node " + n["id"].(string))
 			return true
 		}
 

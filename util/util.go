@@ -3,12 +3,15 @@ package util
 import (
 	"crypto/rand"
 	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"strings"
 
 	"github.com/bytedance/sonic"
 )
+
+var Log = log.New(log.Writer(), "voice-node ", log.Flags())
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
