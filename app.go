@@ -10,7 +10,6 @@ import (
 
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipes/connection"
-	"github.com/dgraph-io/badger/v4"
 	"github.com/gofiber/fiber/v2"
 
 	integration "fajurion.com/node-integration" // Propietary package (might be replaced with an open-source alternative in the future)
@@ -31,14 +30,6 @@ func main() {
 
 	pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
-
-	// Start badger
-	util.Log.Println("Starting badger memory database..")
-	opt := badger.DefaultOptions("").WithInMemory(true)
-	db, err := badger.Open(opt)
-	if err != nil {
-		panic(err)
-	}
 
 	// Query current node
 	_, _, currentApp, domain := integration.GetCurrent()
@@ -95,9 +86,6 @@ func main() {
 		util.Log.Println("Node " + node.ID + " disconnected")
 	}
 	connection.SetupDisconnections()
-
-	// Close badger when done
-	defer db.Close()
 
 	if integration.Testing {
 
