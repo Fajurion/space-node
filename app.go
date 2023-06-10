@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	integration "fajurion.com/node-integration" // Propietary package (might be replaced with an open-source alternative in the future)
+	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/routes"
 	"fajurion.com/voice-node/server"
 	"fajurion.com/voice-node/util"
@@ -27,6 +28,9 @@ func main() {
 	if !integration.Setup() {
 		return
 	}
+
+	// Setup memory
+	caching.SetupMemory()
 
 	pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
