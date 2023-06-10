@@ -44,7 +44,7 @@ func main() {
 	_, _, currentApp, domain := integration.GetCurrent()
 	APP_ID = currentApp
 
-	util.Log.Printf("[voice-node] Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
+	util.Log.Printf("Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
 
 	// Report online status
 	res := integration.SetOnline()
