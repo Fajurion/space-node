@@ -53,7 +53,6 @@ func Listen(domain string, port int) {
 
 		// Extract message
 		msg := buffer[:offset]
-		util.Log.Println("Client:", clientAddr.String(), "| Message:", string(msg))
 
 		// Check if client wants to send to node
 		exists := caching.ExistsConnection(clientAddr.String())
@@ -74,6 +73,11 @@ func Listen(domain string, port int) {
 		}
 
 		if msg[0] != PrefixClient {
+
+			if integration.Testing {
+				util.Log.Println("[udp] Error: Invalid prefix")
+			}
+
 			caching.DeleteConnection(clientAddr.String())
 			continue
 		}
