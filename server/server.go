@@ -7,16 +7,19 @@ import (
 	"strings"
 	"time"
 
+	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipes/connection"
 	"github.com/Fajurion/pipes/receive"
+	"github.com/bytedance/sonic"
 
 	pipesUtil "github.com/Fajurion/pipes/util"
 )
 
 const PrefixNode = 'n'
 const PrefixClient = 'c'
+const PrefixTesting = 't' // Only enabled in testing mode
 
 func Listen(domain string, port int) {
 
@@ -104,64 +107,114 @@ func Listen(domain string, port int) {
 			continue
 		}
 
+		// Register client (AUTH)
+		stringMsg := string(msg[2:])
+		args := strings.Split(stringMsg, ":")
+
+		//! Check for testing stuff
+		if msg[0] == PrefixTesting && integration.Testing {
+
+			if len(args) < 3 {
+				util.Log.Println("[udp] Error: Invalid testing packet")
+				continue
+			}
+
+			// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret):(json for account details))
+			var accountDetails map[string]interface{}
+			err := sonic.UnmarshalString(args[2], &accountDetails)
+			if err != nil {
+				util.Log.Println("[udp] Error: Invalid testing packet")
+				continue
+			}
+
+			if args[0] != accountDetails["id"].(string) {
+				util.Log.Println("[udp] Error: Invalid account id")
+				continue
+			}
+
+			// Read account data packet
+			var testClient = caching.Client{
+				Token:  integration.TestingToken,
+				Secret: integration.TestingToken,
+
+				UserID:   accountDetails["id"].(string),
+				Username: accountDetails["username"].(string),
+				Tag:      accountDetails["tag"].(string),
+				Session:  accountDetails["session"].(string),
+			}
+
+			// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret):(base64 json packet))
+			if !auth(args[1], testClient, clientAddr.String()) {
+				continue
+			}
+
+			util.Log.Println("[udp] ^Testing client registered")
+			continue
+		}
+
 		//* Register client (AUTH)
+
 		msg = msg[2:]
 		if len(msg) < 1 {
 			continue
 		}
 
 		// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret))
-		stringMsg := string(msg)
-		args := strings.Split(stringMsg, ":")
-
 		if len(args) < 2 {
 			util.Log.Println("[udp] Error: Invalid auth packet")
 			continue
 		}
 
+		// Get auth token
 		accountId := args[0]
 		secret := args[1]
 
-		// Get auth token
 		client, valid := caching.GetToken(accountId)
 		if !valid {
 			util.Log.Println("[udp] Error: Invalid auth token")
 			continue
 		}
 
-		cipher, err := aes.NewCipher(client.GetKey())
-		if err != nil {
-			util.Log.Println("[udp] Error creating cipher: ", err)
+		if !auth(secret, client, clientAddr.String()) {
 			continue
 		}
+	}
+}
 
-		var decrypted, decoded []byte
-		decoded, err = base64.StdEncoding.DecodeString(secret)
-		if err != nil {
-			util.Log.Println("[udp] Error decoding message: ", err)
-			continue
-		}
+func auth(secret string, client caching.Client, address string) bool {
 
-		decrypted, err = pipesUtil.DecryptAES(cipher, decoded)
-		if err != nil {
-			util.Log.Println("[udp] Error decrypting message: ", err)
-			continue
-		}
-
-		decryptedMsg := string(decrypted)
-		if decryptedMsg != client.Secret {
-			util.Log.Println("[udp] Error: Invalid secret")
-			continue
-		}
-
-		// Add client
-		caching.DeleteToken(accountId)
-		connectedClient := client.ToConnected(clientAddr.String())
-
-		caching.StoreConnection(connectedClient)
-		caching.StoreUser(connectedClient)
-		util.Log.Println("[udp]", connectedClient.UserID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
-
+	cipher, err := aes.NewCipher(client.GetKey())
+	if err != nil {
+		util.Log.Println("[udp] Error creating cipher: ", err)
+		return false
 	}
 
+	var decrypted, decoded []byte
+	decoded, err = base64.StdEncoding.DecodeString(secret)
+	if err != nil {
+		util.Log.Println("[udp] Error decoding message: ", err)
+		return false
+	}
+
+	decrypted, err = pipesUtil.DecryptAES(cipher, decoded)
+	if err != nil {
+		util.Log.Println("[udp] Error decrypting message: ", err)
+		return false
+	}
+
+	decryptedMsg := string(decrypted)
+	if decryptedMsg != client.Secret {
+		util.Log.Println("[udp] Error: Invalid secret")
+		return false
+	}
+
+	// Add client
+	caching.DeleteToken(client.UserID)
+	connectedClient := client.ToConnected(address)
+
+	caching.StoreConnection(connectedClient)
+	caching.StoreUser(connectedClient)
+	util.Log.Println("[udp]", connectedClient.UserID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
+
+	return true
 }
