@@ -1,12 +1,18 @@
 package server
 
 import (
+	"crypto/aes"
+	"encoding/base64"
 	"net"
+	"strings"
 	"time"
 
+	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipes/connection"
 	"github.com/Fajurion/pipes/receive"
+
+	pipesUtil "github.com/Fajurion/pipes/util"
 )
 
 const PrefixNode = 'n'
@@ -44,13 +50,14 @@ func Listen(domain string, port int) {
 
 		// Extract message
 		msg := buffer[:offset]
+		util.Log.Println("Client:", clientAddr.String(), "| Message:", string(msg))
 
 		// Check if client wants to send to node
-		exists := ExistsClient(clientAddr.String())
+		exists := caching.ExistsConnection(clientAddr.String())
 		node := msg[0] == PrefixNode
 
 		if exists && node {
-			RemoveClient(clientAddr.String())
+			caching.DeleteConnection(clientAddr.String())
 			continue
 		}
 
@@ -64,7 +71,7 @@ func Listen(domain string, port int) {
 		}
 
 		if msg[0] != PrefixClient {
-			RemoveClient(clientAddr.String())
+			caching.DeleteConnection(clientAddr.String())
 			continue
 		}
 
@@ -72,9 +79,9 @@ func Listen(domain string, port int) {
 		if exists {
 
 			// Update last message
-			client, err := GetClient(clientAddr.String())
-			if err != nil {
-				util.Log.Println("[udp] Error getting client: ", err)
+			client, valid := caching.GetConnection(clientAddr.String())
+			if !valid {
+				util.Log.Println("[udp] Error getting client, even though exists: ", err)
 				continue
 			}
 
@@ -97,14 +104,64 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		// Data will be retrieved from node_backend later
-		AddClient(clientAddr.String(), Client{
-			Username:    "just_for_testing",
-			Address:     clientAddr,
-			LastMessage: time.Now().UnixMilli(),
-		})
+		//* Register client (AUTH)
+		msg = msg[2:]
+		if len(msg) < 1 {
+			continue
+		}
 
-		// TODO: Add handler
+		// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret))
+		stringMsg := string(msg)
+		args := strings.Split(stringMsg, ":")
+
+		if len(args) < 2 {
+			util.Log.Println("[udp] Error: Invalid auth packet")
+			continue
+		}
+
+		accountId := args[0]
+		secret := args[1]
+
+		// Get auth token
+		client, valid := caching.GetToken(accountId)
+		if !valid {
+			util.Log.Println("[udp] Error: Invalid auth token")
+			continue
+		}
+
+		cipher, err := aes.NewCipher(client.GetKey())
+		if err != nil {
+			util.Log.Println("[udp] Error creating cipher: ", err)
+			continue
+		}
+
+		var decrypted, decoded []byte
+		decoded, err = base64.StdEncoding.DecodeString(secret)
+		if err != nil {
+			util.Log.Println("[udp] Error decoding message: ", err)
+			continue
+		}
+
+		decrypted, err = pipesUtil.DecryptAES(cipher, decoded)
+		if err != nil {
+			util.Log.Println("[udp] Error decrypting message: ", err)
+			continue
+		}
+
+		decryptedMsg := string(decrypted)
+		if decryptedMsg != client.Secret {
+			util.Log.Println("[udp] Error: Invalid secret")
+			continue
+		}
+
+		// Add client
+		caching.DeleteToken(accountId)
+		connectedClient := client.ToConnected(clientAddr.String())
+
+		caching.StoreConnection(connectedClient)
+		caching.StoreUser(connectedClient)
+		util.Log.Println("[udp]", connectedClient.UserID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
+
 	}
 
 }

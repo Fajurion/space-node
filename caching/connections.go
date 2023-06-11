@@ -2,6 +2,7 @@ package caching
 
 import "github.com/dgraph-io/ristretto"
 
+// ! For setting please ALWAYS use cost 1
 var connectionsCache *ristretto.Cache
 
 func setupConnectionsCache() {
@@ -19,23 +20,15 @@ func setupConnectionsCache() {
 
 }
 
-type ConnectedClient struct {
-
-	//* Connection information
-	Address string   // IP and port of the client
-	Key     [32]byte // Encryption key for the connection to the client
-
-	//* User information
-	UserID   string // User ID
-	Username string // Username
-	Tag      string // Tag
-	Session  string // Connected session
-
-}
-
 // StoreConnection stores a connection in the cache
 func StoreConnection(client ConnectedClient) {
-	connectionsCache.Set(client.Address, client, 1)
+	connectionsCache.Set(client.Address, client.UserID, 1)
+}
+
+// ExistsConnection checks if a connection exists in the cache
+func ExistsConnection(address string) bool {
+	_, found := connectionsCache.Get(address)
+	return found
 }
 
 // GetConnection returns a connection from the cache

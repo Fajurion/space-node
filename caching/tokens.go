@@ -25,7 +25,8 @@ func setupTokenCache() {
 }
 
 type Client struct {
-	Token string // Auth token
+	Token  string // Auth token
+	Secret string // Auth secret
 
 	UserID   string // User ID
 	Username string // Username
@@ -34,13 +35,13 @@ type Client struct {
 }
 
 // StoreToken stores a token in the cache
-func StoreToken(token string, client Client) {
-	tokenCache.Set(token, client, 1)
+func StoreToken(client Client) {
+	tokenCache.Set(client.UserID, client, 1)
 }
 
 // GetToken returns a token from the cache
-func GetToken(token string) (Client, bool) {
-	client, found := tokenCache.Get(token)
+func GetToken(account string) (Client, bool) {
+	client, found := tokenCache.Get(account)
 	if found {
 		return client.(Client), true
 	}
@@ -54,7 +55,7 @@ func (client Client) ToConnected(Address string) ConnectedClient {
 
 	return ConnectedClient{
 		Address:  Address,
-		Key:      key,
+		Key:      key[:],
 		UserID:   client.UserID,
 		Username: client.Username,
 		Tag:      client.Tag,
@@ -62,7 +63,18 @@ func (client Client) ToConnected(Address string) ConnectedClient {
 	}
 }
 
+func (client Client) GetKey() []byte {
+	arr := sha256.Sum256([]byte(client.Token))
+	return arr[:]
+}
+
 // DeleteToken deletes a token from the cache
-func DeleteToken(token string) {
-	tokenCache.Del(token)
+func DeleteToken(account string) {
+	tokenCache.Del(account)
+}
+
+// ExistsToken checks if a token exists in the cache
+func ExistsToken(account string) bool {
+	_, found := tokenCache.Get(account)
+	return found
 }

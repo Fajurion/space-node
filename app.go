@@ -91,6 +91,9 @@ func main() {
 	}
 	connection.SetupDisconnections()
 
+	// Close caches on exit
+	defer caching.CloseCaches()
+
 	if integration.Testing {
 
 		// Start on localhost

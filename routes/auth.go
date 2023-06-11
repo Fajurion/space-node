@@ -2,6 +2,7 @@ package routes
 
 import (
 	integration "fajurion.com/node-integration"
+	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,21 +28,29 @@ func initalize(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	util.Log.Println(req.UserID, "|", req.SessionIds)
+	if caching.ExistsUser(req.UserID) || caching.ExistsToken(req.UserID) {
+		return util.FailedRequest(c, "already.connected", nil)
+	}
 
-	tk := util.GenerateToken(200)
+	util.Log.Println("Request by backend: Generating auth token for", req.UserID, "("+req.Username+")")
+	tk := util.GenerateToken(200)    // Token is used to encrypt the connection (AES 256 hashed)
+	secret := util.GenerateToken(32) // Secret is used to authenticate the user
 
-	/*
-		// Check if there are too many users
-		if bridge.GetConnections(req.UserID) >= 3 {
-			return util.FailedRequest(c, "too.many.connections", nil)
-		}
+	// Generate new token
+	var client = caching.Client{
+		Token:  tk,
+		Secret: secret,
 
-		bridge.AddToken(tk, req.UserID, req.Session, req.Username, req.Tag) */
+		UserID:   req.UserID,
+		Username: req.Username,
+		Tag:      req.Tag,
+		Session:  req.Session,
+	}
+	caching.StoreToken(client)
 
 	return c.JSON(fiber.Map{
 		"success": true,
 		"load":    0,
-		"token":   tk,
+		"token":   tk + "." + secret,
 	})
 }
