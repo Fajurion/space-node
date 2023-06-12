@@ -21,6 +21,11 @@ const PrefixNode = 'n'
 const PrefixClient = 'c'
 const PrefixTesting = 't' // Only enabled in testing mode
 
+// Channels
+const ChannelRefresh = 'r'
+const ChannelAction = 'a'
+const ChannelData = 'd'
+
 func Listen(domain string, port int) {
 
 	connection.GeneralPrefix = []byte{PrefixNode, ':'}
@@ -85,8 +90,34 @@ func Listen(domain string, port int) {
 		// Register client
 		if exists {
 
+			// Get account ID
+			accountId, valid := caching.GetConnection(clientAddr.String())
+			if !valid {
+				util.Log.Println("[udp] Error getting client, even though exists: ", err)
+				continue
+			}
+
+			if len(msg) < 3 {
+				util.Log.Println("[udp] Error: Invalid message")
+				continue
+			}
+
+			// Refresh connection if needed
+			if msg[2] == ChannelRefresh {
+
+				if caching.LastConnectionRefresh(clientAddr.String()).Seconds() > caching.UserTTL.Seconds()/2 {
+					util.Log.Println("[udp] Error: Refreshing to often for ", accountId)
+					continue
+				}
+
+				caching.RefreshConnection(clientAddr.String())
+				caching.RefreshUser(accountId)
+
+				continue
+			}
+
 			// Update last message
-			client, valid := caching.GetConnection(clientAddr.String())
+			client, valid := caching.GetUser(clientAddr.String())
 			if !valid {
 				util.Log.Println("[udp] Error getting client, even though exists: ", err)
 				continue
@@ -119,15 +150,21 @@ func Listen(domain string, port int) {
 		if msg[0] == PrefixTesting && integration.Testing {
 
 			if len(args) < 3 {
-				util.Log.Println("[udp] Error: Invalid testing packet")
+				util.Log.Println("[udp] Error: Invalid testing packet (length)")
 				continue
 			}
 
 			// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret):(json for account details))
 			var accountDetails map[string]interface{}
-			err := sonic.UnmarshalString(args[2], &accountDetails)
+			decoded, err := base64.StdEncoding.DecodeString(args[2])
 			if err != nil {
-				util.Log.Println("[udp] Error: Invalid testing packet")
+				util.Log.Println("[udp] Error: Invalid testing packet (base64)")
+				continue
+			}
+
+			err = sonic.UnmarshalString(string(decoded), &accountDetails)
+			if err != nil {
+				util.Log.Println("[udp] Error: Invalid testing packet (json)")
 				continue
 			}
 

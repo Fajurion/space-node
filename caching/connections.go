@@ -1,6 +1,10 @@
 package caching
 
-import "github.com/dgraph-io/ristretto"
+import (
+	"time"
+
+	"github.com/dgraph-io/ristretto"
+)
 
 // ! For setting please ALWAYS use cost 1
 var connectionsCache *ristretto.Cache
@@ -20,9 +24,31 @@ func setupConnectionsCache() {
 
 }
 
-// StoreConnection stores a connection in the cache
+// StoreConnection stores a connection in the cache for the user ttl
 func StoreConnection(client ConnectedClient) {
-	connectionsCache.Set(client.Address, client.UserID, 1)
+	connectionsCache.SetWithTTL(client.Address, client.UserID, 1, UserTTL)
+}
+
+// RefreshConnection refreshes a connection in the cache for the user ttl
+func RefreshConnection(address string) bool {
+
+	client, valid := connectionsCache.Get(address)
+	if !valid {
+		return false
+	}
+
+	connectionsCache.SetWithTTL(address, client, 1, UserTTL)
+	return true
+}
+
+func LastConnectionRefresh(address string) time.Duration {
+	time, found := connectionsCache.GetTTL(address)
+
+	if found {
+		return time
+	}
+
+	return -1
 }
 
 // ExistsConnection checks if a connection exists in the cache
@@ -32,12 +58,12 @@ func ExistsConnection(address string) bool {
 }
 
 // GetConnection returns a connection from the cache
-func GetConnection(address string) (ConnectedClient, bool) {
+func GetConnection(address string) (string, bool) {
 	client, found := connectionsCache.Get(address)
 	if found {
-		return client.(ConnectedClient), true
+		return client.(string), true
 	}
-	return ConnectedClient{}, false
+	return "", false
 }
 
 // DeleteConnection deletes a connection from the cache

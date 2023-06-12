@@ -1,6 +1,9 @@
 package caching
 
-import "github.com/dgraph-io/ristretto"
+import (
+	"fajurion.com/voice-node/util"
+	"github.com/dgraph-io/ristretto"
+)
 
 // ! For setting please ALWAYS use cost 1
 var usersCache *ristretto.Cache
@@ -12,6 +15,11 @@ func setupUsersCache() {
 		NumCounters: 1e5, // expecting to store 10k connections
 		MaxCost:     1e4, // maximum items in the cache (with cost 1 on each set)
 		BufferItems: 64,  // Some random number, check docs
+		OnExit: func(val interface{}) {
+			client := val.(ConnectedClient)
+
+			util.Log.Println("[udp]", client.UserID, "("+client.Username+"#"+client.Tag+")", "disconnected")
+		},
 	})
 
 	if err != nil {
@@ -37,7 +45,19 @@ type ConnectedClient struct {
 
 // StoreUser stores a user in the cache
 func StoreUser(client ConnectedClient) {
-	usersCache.Set(client.UserID, client, 1)
+	usersCache.SetWithTTL(client.UserID, client, 1, UserTTL)
+}
+
+// RefreshUser refreshes a user in the cache
+func RefreshUser(userID string) bool {
+
+	client, valid := usersCache.Get(userID)
+	if !valid {
+		return false
+	}
+
+	usersCache.SetWithTTL(userID, client, 1, UserTTL)
+	return true
 }
 
 // ExistsUser checks if a user exists in the cache

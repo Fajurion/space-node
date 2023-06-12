@@ -22,15 +22,16 @@ import (
 var APP_ID uint = 0
 
 func main() {
+
+	// Setup memory
+	caching.SetupMemory()
+
 	app := fiber.New()
 	app.Route("/", routes.SetupRoutes)
 
 	if !integration.Setup() {
 		return
 	}
-
-	// Setup memory
-	caching.SetupMemory()
 
 	pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
