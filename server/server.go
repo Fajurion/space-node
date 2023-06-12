@@ -72,7 +72,7 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		if msg[0] != PrefixClient {
+		if msg[0] != PrefixClient && !integration.Testing {
 
 			if integration.Testing {
 				util.Log.Println("[udp] Error: Invalid prefix")
@@ -115,7 +115,7 @@ func Listen(domain string, port int) {
 		stringMsg := string(msg[2:])
 		args := strings.Split(stringMsg, ":")
 
-		//! Check for testing stuff
+		//! Check for testing stuff (TESTING ONLY)
 		if msg[0] == PrefixTesting && integration.Testing {
 
 			if len(args) < 3 {

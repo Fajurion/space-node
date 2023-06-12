@@ -3,3 +3,5 @@ node-integration/*
 
 pipes/
 pipes/*
+
+.env
