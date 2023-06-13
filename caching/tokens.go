@@ -2,7 +2,9 @@ package caching
 
 import (
 	"crypto/sha256"
+	"time"
 
+	"fajurion.com/voice-node/util"
 	"github.com/dgraph-io/ristretto"
 )
 
@@ -24,19 +26,40 @@ func setupTokenCache() {
 
 }
 
+const TargetRoom = 0
+const TargetWorld = 1 // When world protocol is implemented
+
 type Client struct {
 	Token  string // Auth token
 	Secret string // Auth secret
 
-	UserID   string // User ID
+	TargetType int    // Target type
+	Target     string // Target id
+
+	ID       string // User ID
 	Username string // Username
 	Tag      string // Tag
 	Session  string // Connected session
 }
 
-// StoreToken stores a token in the cache
-func StoreToken(client Client) {
-	tokenCache.Set(client.UserID, client, 1)
+// Time for which a token is valid
+const TokenTTL = time.Hour * 1
+
+// GenerateRoomToken generates a token for a room given a client
+func GenerateRoomToken(client Client, Room string) string {
+
+	client.Token = util.GenerateToken(200)
+	client.Secret = util.GenerateToken(32)
+	client.TargetType = TargetRoom
+	client.Target = Room
+
+	storeToken(client)
+	return client.Token
+}
+
+// storeToken stores a token in the cache
+func storeToken(client Client) {
+	tokenCache.SetWithTTL(client.ID, client, 1, TokenTTL)
 }
 
 // GetToken returns a token from the cache
@@ -56,10 +79,9 @@ func (client Client) ToConnected(Address string) ConnectedClient {
 	return ConnectedClient{
 		Address:  Address,
 		Key:      key[:],
-		UserID:   client.UserID,
+		ID:       client.ID,
 		Username: client.Username,
 		Tag:      client.Tag,
-		Session:  client.Session,
 	}
 }
 

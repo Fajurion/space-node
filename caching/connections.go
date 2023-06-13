@@ -26,7 +26,7 @@ func setupConnectionsCache() {
 
 // StoreConnection stores a connection in the cache for the user ttl
 func StoreConnection(client ConnectedClient) {
-	connectionsCache.SetWithTTL(client.Address, client.UserID, 1, UserTTL)
+	connectionsCache.SetWithTTL(client.Address, client.ID, 1, UserTTL)
 }
 
 // RefreshConnection refreshes a connection in the cache for the user ttl

@@ -7,50 +7,48 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type intializeRequest struct {
-	NodeToken  string   `json:"node_token"`
-	Session    string   `json:"session"`
-	UserID     string   `json:"user_id"`
-	Username   string   `json:"username"`
-	Tag        string   `json:"tag"`
-	SessionIds []string `json:"session_ids"`
+func initalize(c *fiber.Ctx) error {
+	return util.FailedRequest(c, "not.implemented", nil)
 }
 
-func initalize(c *fiber.Ctx) error {
+type createTokenRequest struct {
 
-	// Parse the request
-	var req intializeRequest
+	// Node data
+	Token      string `json:"token"`
+	TargetType int    `json:"targetType"`
+	Target     string `json:"target"`
+
+	// Account data
+	Account  string `json:"account"`
+	Username string `json:"username"`
+	Tag      string `json:"tag"`
+}
+
+func createToken(c *fiber.Ctx) error {
+
+	// Parse request
+	var req createTokenRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return util.InvalidRequest(c)
 	}
 
-	if integration.NODE_TOKEN != req.NodeToken {
-		return c.SendStatus(fiber.StatusUnauthorized)
+	if req.Token != integration.NODE_TOKEN {
+		return util.InvalidRequest(c)
 	}
 
-	if caching.ExistsUser(req.UserID) || caching.ExistsToken(req.UserID) {
-		return util.FailedRequest(c, "already.connected", nil)
+	if req.TargetType != caching.TargetRoom {
+		return util.InvalidRequest(c)
 	}
 
-	util.Log.Println("Request by backend: Generating auth token for", req.UserID, "("+req.Username+")")
-	tk := util.GenerateToken(200)    // Token is used to encrypt the connection (AES 256 hashed)
-	secret := util.GenerateToken(32) // Secret is used to authenticate the user
-
-	// Generate new token
-	var client = caching.Client{
-		Token:  tk,
-		Secret: secret,
-
-		UserID:   req.UserID,
+	// Create token
+	token := caching.GenerateRoomToken(caching.Client{
+		ID:       req.Account,
 		Username: req.Username,
 		Tag:      req.Tag,
-		Session:  req.Session,
-	}
-	caching.StoreToken(client)
+	}, req.Target)
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"load":    0,
-		"token":   tk + "." + secret,
+		"token":   token,
 	})
 }

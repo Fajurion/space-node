@@ -15,10 +15,10 @@ func setupUsersCache() {
 		NumCounters: 1e5, // expecting to store 10k connections
 		MaxCost:     1e4, // maximum items in the cache (with cost 1 on each set)
 		BufferItems: 64,  // Some random number, check docs
-		OnExit: func(val interface{}) {
-			client := val.(ConnectedClient)
+		OnEvict: func(item *ristretto.Item) {
+			client := item.Value.(ConnectedClient)
 
-			util.Log.Println("[udp]", client.UserID, "("+client.Username+"#"+client.Tag+")", "disconnected")
+			util.Log.Println("[udp]", client.ID, "("+client.Username+"#"+client.Tag+")", "disconnected")
 		},
 	})
 
@@ -36,16 +36,15 @@ type ConnectedClient struct {
 	LastMessage int64  // Last message received from the client
 
 	//* User information
-	UserID   string // User ID
+	ID       string // User ID
 	Username string // Username
 	Tag      string // Tag
-	Session  string // Connected session
 
 }
 
 // StoreUser stores a user in the cache
 func StoreUser(client ConnectedClient) {
-	usersCache.SetWithTTL(client.UserID, client, 1, UserTTL)
+	usersCache.SetWithTTL(client.ID, client, 1, UserTTL)
 }
 
 // RefreshUser refreshes a user in the cache

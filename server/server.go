@@ -12,19 +12,19 @@ import (
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipes/connection"
 	"github.com/Fajurion/pipes/receive"
-	"github.com/bytedance/sonic"
 
 	pipesUtil "github.com/Fajurion/pipes/util"
 )
 
 const PrefixNode = 'n'
 const PrefixClient = 'c'
-const PrefixTesting = 't' // Only enabled in testing mode
 
 // Channels
 const ChannelRefresh = 'r'
 const ChannelAction = 'a'
 const ChannelData = 'd'
+
+var udpServ *net.UDPConn
 
 func Listen(domain string, port int) {
 
@@ -38,7 +38,8 @@ func Listen(domain string, port int) {
 	util.Log.Println("Starting UDP server..")
 
 	// Start udp server
-	udpServ, err := net.ListenUDP("udp", &addr)
+	var err error
+	udpServ, err = net.ListenUDP("udp", &addr)
 	if err != nil {
 		util.Log.Println("[udp] Error: ", err)
 		panic(err)
@@ -77,7 +78,7 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		if msg[0] != PrefixClient && !integration.Testing {
+		if msg[0] != PrefixClient {
 
 			if integration.Testing {
 				util.Log.Println("[udp] Error: Invalid prefix")
@@ -102,20 +103,6 @@ func Listen(domain string, port int) {
 				continue
 			}
 
-			// Refresh connection if needed
-			if msg[2] == ChannelRefresh {
-
-				if caching.LastConnectionRefresh(clientAddr.String()).Seconds() > caching.UserTTL.Seconds()/2 {
-					util.Log.Println("[udp] Error: Refreshing to often for ", accountId)
-					continue
-				}
-
-				caching.RefreshConnection(clientAddr.String())
-				caching.RefreshUser(accountId)
-
-				continue
-			}
-
 			// Update last message
 			client, valid := caching.GetUser(clientAddr.String())
 			if !valid {
@@ -127,6 +114,12 @@ func Listen(domain string, port int) {
 			if time.Now().UnixMilli()-client.LastMessage < 50 {
 				// TODO: Block
 				continue
+			}
+
+			// Handle channels
+			err := ExecuteChannel(accountId, msg, clientAddr)
+			if err != nil {
+				util.Log.Println("[udp]", accountId+":", err)
 			}
 
 			util.Log.Println("[udp]", string(msg[2:]), offset)
@@ -142,73 +135,25 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		// Register client (AUTH)
+		//* Register client (AUTH)
 		stringMsg := string(msg[2:])
 		args := strings.Split(stringMsg, ":")
-
-		//! Check for testing stuff (TESTING ONLY)
-		if msg[0] == PrefixTesting && integration.Testing {
-
-			if len(args) < 3 {
-				util.Log.Println("[udp] Error: Invalid testing packet (length)")
-				continue
-			}
-
-			// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret):(json for account details))
-			var accountDetails map[string]interface{}
-			decoded, err := base64.StdEncoding.DecodeString(args[2])
-			if err != nil {
-				util.Log.Println("[udp] Error: Invalid testing packet (base64)")
-				continue
-			}
-
-			err = sonic.UnmarshalString(string(decoded), &accountDetails)
-			if err != nil {
-				util.Log.Println("[udp] Error: Invalid testing packet (json)")
-				continue
-			}
-
-			if args[0] != accountDetails["id"].(string) {
-				util.Log.Println("[udp] Error: Invalid account id")
-				continue
-			}
-
-			// Read account data packet
-			var testClient = caching.Client{
-				Token:  integration.TestingToken,
-				Secret: integration.TestingToken,
-
-				UserID:   accountDetails["id"].(string),
-				Username: accountDetails["username"].(string),
-				Tag:      accountDetails["tag"].(string),
-				Session:  accountDetails["session"].(string),
-			}
-
-			// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret):(base64 json packet))
-			if !auth(args[1], testClient, clientAddr.String()) {
-				continue
-			}
-
-			util.Log.Println("[udp] ^Testing client registered")
-			continue
-		}
-
-		//* Register client (AUTH)
 
 		msg = msg[2:]
 		if len(msg) < 1 {
 			continue
 		}
 
-		// Read auth packet ((c:)account:(base64 encoded + AES encrypted secret))
-		if len(args) < 2 {
+		// Read auth packet ((c:)account:room:(base64 encoded + AES encrypted secret))
+		if len(args) < 3 {
 			util.Log.Println("[udp] Error: Invalid auth packet")
 			continue
 		}
 
 		// Get auth token
 		accountId := args[0]
-		secret := args[1]
+		room := args[1]
+		secret := args[2]
 
 		client, valid := caching.GetToken(accountId)
 		if !valid {
@@ -216,9 +161,12 @@ func Listen(domain string, port int) {
 			continue
 		}
 
+		// Join room if correct
 		if !auth(secret, client, clientAddr.String()) {
 			continue
 		}
+
+		caching.JoinRoom(room, accountId)
 	}
 }
 
@@ -250,12 +198,12 @@ func auth(secret string, client caching.Client, address string) bool {
 	}
 
 	// Add client
-	caching.DeleteToken(client.UserID)
+	caching.DeleteToken(client.ID)
 	connectedClient := client.ToConnected(address)
 
 	caching.StoreConnection(connectedClient)
 	caching.StoreUser(connectedClient)
-	util.Log.Println("[udp]", connectedClient.UserID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
+	util.Log.Println("[udp]", connectedClient.ID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
 
 	return true
 }
