@@ -1,9 +1,11 @@
 package caching
 
 import (
+	"crypto/aes"
 	"crypto/sha256"
 	"time"
 
+	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/util"
 	"github.com/dgraph-io/ristretto"
 )
@@ -18,6 +20,11 @@ func setupTokenCache() {
 		NumCounters: 1e5, // expecting to store 10k items
 		MaxCost:     1e4, // maximum items in the cache (with cost 1 on each set)
 		BufferItems: 64,  // Some random number, check docs
+		OnEvict: func(item *ristretto.Item) {
+			client := item.Value.(Client)
+
+			util.Log.Println("[udp]", client.ID, "was deleted")
+		},
 	})
 
 	if err != nil {
@@ -57,6 +64,22 @@ func GenerateRoomToken(client Client, Room string) (string, string) {
 	return client.Token, client.Secret
 }
 
+// GenerateRoomTestToken generates a token for a room given a client
+func GenerateRoomTestToken(client Client, Room string) (string, string) {
+
+	if !integration.Testing {
+		panic("Cannot generate test token when not testing")
+	}
+
+	client.Token = client.ID
+	client.Secret = client.ID
+	client.TargetType = TargetRoom
+	client.Target = Room
+
+	storeToken(client)
+	return client.Token, client.Secret
+}
+
 // storeToken stores a token in the cache
 func storeToken(client Client) {
 	tokenCache.SetWithTTL(client.ID, client, 1, TokenTTL)
@@ -71,18 +94,23 @@ func GetToken(account string) (Client, bool) {
 	return Client{}, false
 }
 
-func (client Client) ToConnected(Address string) ConnectedClient {
+func (client Client) ToConnected(Address string) (ConnectedClient, bool) {
 
 	// Generate encryption key using hash of token
 	key := sha256.Sum256([]byte(client.Token))
+	cipher, err := aes.NewCipher(key[:])
+	if err != nil {
+		util.Log.Println("[udp]", "Error creating cipher for", client.ID, err)
+		return ConnectedClient{}, false
+	}
 
 	return ConnectedClient{
 		Address:  Address,
-		Key:      key[:],
+		Key:      cipher,
 		ID:       client.ID,
 		Username: client.Username,
 		Tag:      client.Tag,
-	}
+	}, true
 }
 
 func (client Client) GetKey() []byte {
@@ -103,7 +131,7 @@ func ExistsToken(account string) bool {
 
 // RandomTestClient returns a random client for testing
 func RandomTestClient() Client {
-	id := util.GenerateToken(32)
+	id := util.GenerateToken(8)
 	return Client{
 		ID:       id,
 		Username: "tester " + id,

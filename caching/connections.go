@@ -1,6 +1,7 @@
 package caching
 
 import (
+	"crypto/cipher"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -24,9 +25,18 @@ func setupConnectionsCache() {
 
 }
 
+type Connection struct {
+	ID          string       // ID of the account
+	Key         cipher.Block // Encryption key
+	LastMessage int64        // Last message received from the client
+}
+
 // StoreConnection stores a connection in the cache for the user ttl
 func StoreConnection(client ConnectedClient) {
-	connectionsCache.SetWithTTL(client.Address, client.ID, 1, UserTTL)
+	connectionsCache.SetWithTTL(client.Address, Connection{
+		ID:  client.ID,
+		Key: client.Key,
+	}, 1, UserTTL)
 }
 
 // RefreshConnection refreshes a connection in the cache for the user ttl
@@ -58,12 +68,12 @@ func ExistsConnection(address string) bool {
 }
 
 // GetConnection returns a connection from the cache
-func GetConnection(address string) (string, bool) {
+func GetConnection(address string) (Connection, bool) {
 	client, found := connectionsCache.Get(address)
 	if found {
-		return client.(string), true
+		return client.(Connection), true
 	}
-	return "", false
+	return Connection{}, false
 }
 
 // DeleteConnection deletes a connection from the cache

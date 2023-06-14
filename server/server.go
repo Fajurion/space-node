@@ -16,8 +16,9 @@ import (
 	pipesUtil "github.com/Fajurion/pipes/util"
 )
 
-const PrefixNode = 'n'
-const PrefixClient = 'c'
+const PrefixNode = 'n'      // For node auth & communication
+const PrefixClient = 'c'    // For client auth
+const PrefixEncrypted = 'e' // For encrypted traffic with the client
 
 var udpServ *net.UDPConn
 
@@ -56,7 +57,7 @@ func Listen(domain string, port int) {
 		msg := buffer[:offset]
 
 		// Check if client wants to send to node
-		exists := caching.ExistsConnection(clientAddr.String())
+		connection, exists := caching.GetConnection(clientAddr.String())
 		node := msg[0] == PrefixNode
 
 		if exists && node {
@@ -73,6 +74,40 @@ func Listen(domain string, port int) {
 			continue
 		}
 
+		// Register client
+		if exists {
+
+			if msg[0] != PrefixEncrypted {
+				util.Log.Println("[udp] Error: No encryption prefix")
+				caching.DeleteConnection(clientAddr.String())
+				continue
+			}
+
+			decrypted, err := pipesUtil.DecryptAES(connection.Key, msg[2:])
+			if err != nil {
+				util.Log.Println("[udp] Error: Invalid message")
+				continue
+			}
+
+			// Check if sent too quickly
+			if time.Now().UnixMilli()-connection.LastMessage < 50 {
+				// TODO: Block (deletion for now)
+				caching.DeleteConnection(clientAddr.String())
+				continue
+			}
+
+			// Handle channels
+			err = ExecuteChannel(connection.ID, decrypted, clientAddr)
+			if err != nil {
+				util.Log.Println("[udp]", connection.ID+": Error:", err)
+			}
+
+			util.Log.Println("[udp]", string(msg[2:]), offset)
+
+			connection.LastMessage = time.Now().UnixMilli()
+			continue
+		}
+
 		if msg[0] != PrefixClient {
 
 			if integration.Testing {
@@ -80,53 +115,6 @@ func Listen(domain string, port int) {
 			}
 
 			caching.DeleteConnection(clientAddr.String())
-			continue
-		}
-
-		// Register client
-		if exists {
-
-			// Get account ID
-			accountId, valid := caching.GetConnection(clientAddr.String())
-			if !valid {
-				util.Log.Println("[udp] Error getting client, even though exists: ", err)
-				continue
-			}
-
-			if len(msg) < 3 {
-				util.Log.Println("[udp] Error: Invalid message")
-				continue
-			}
-
-			// Update last message
-			client, valid := caching.GetUser(clientAddr.String())
-			if !valid {
-				util.Log.Println("[udp] Error getting client, even though exists: ", err)
-				continue
-			}
-
-			// Check if sent too quickly
-			if time.Now().UnixMilli()-client.LastMessage < 50 {
-				// TODO: Block
-				continue
-			}
-
-			// Handle channels
-			err := ExecuteChannel(accountId, msg, clientAddr)
-			if err != nil {
-				util.Log.Println("[udp]", accountId+":", err)
-			}
-
-			util.Log.Println("[udp]", string(msg[2:]), offset)
-
-			// Echo (for now)
-			_, err = udpServ.WriteTo(msg[2:], clientAddr)
-			if err != nil {
-				util.Log.Println("[udp] Error echoing message:", err)
-				continue
-			}
-
-			client.LastMessage = time.Now().UnixMilli()
 			continue
 		}
 
@@ -152,13 +140,12 @@ func Listen(domain string, port int) {
 
 		client, valid := caching.GetToken(accountId)
 		if !valid {
-			util.Log.Println("[udp] Error: Invalid auth token")
-			caching.DeleteToken(accountId)
+			util.Log.Println("[udp] Error: Invalid auth token (not found)")
 			continue
 		}
 
 		if client.ID != accountId {
-			util.Log.Println("[udp] Error: Invalid auth token")
+			util.Log.Println("[udp] Error: Invalid auth token (invalid account id)")
 			caching.DeleteToken(accountId)
 			continue
 		}
@@ -201,7 +188,10 @@ func auth(secret string, client caching.Client, address string) bool {
 
 	// Add client
 	caching.DeleteToken(client.ID)
-	connectedClient := client.ToConnected(address)
+	connectedClient, valid := client.ToConnected(address)
+	if !valid {
+		return false
+	}
 
 	caching.StoreConnection(connectedClient)
 	caching.StoreUser(connectedClient)

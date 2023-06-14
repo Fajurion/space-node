@@ -1,6 +1,8 @@
 package caching
 
 import (
+	"crypto/cipher"
+
 	"fajurion.com/voice-node/util"
 	"github.com/dgraph-io/ristretto"
 )
@@ -31,9 +33,8 @@ func setupUsersCache() {
 type ConnectedClient struct {
 
 	//* Connection information
-	Address     string // IP and port of the client
-	Key         []byte // Encryption key for the connection to the client
-	LastMessage int64  // Last message received from the client
+	Address string       // IP and port of the client
+	Key     cipher.Block // Encryption key for the connection to the client
 
 	//* User information
 	ID       string // User ID
