@@ -24,6 +24,10 @@ func ExecuteChannel(account string, bytes []byte, addr net.Addr) error {
 		return errors.New("channel not found")
 	}
 
+	if len(bytes) < 2 {
+		return errors.New("invalid packet")
+	}
+
 	var context = Context{
 		Account: account,
 		Bytes:   bytes[2:],
