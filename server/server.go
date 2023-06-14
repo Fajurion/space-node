@@ -153,6 +153,13 @@ func Listen(domain string, port int) {
 		client, valid := caching.GetToken(accountId)
 		if !valid {
 			util.Log.Println("[udp] Error: Invalid auth token")
+			caching.DeleteToken(accountId)
+			continue
+		}
+
+		if client.ID != accountId {
+			util.Log.Println("[udp] Error: Invalid auth token")
+			caching.DeleteToken(accountId)
 			continue
 		}
 
