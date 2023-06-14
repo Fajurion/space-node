@@ -46,7 +46,7 @@ type Client struct {
 const TokenTTL = time.Hour * 1
 
 // GenerateRoomToken generates a token for a room given a client
-func GenerateRoomToken(client Client, Room string) string {
+func GenerateRoomToken(client Client, Room string) (string, string) {
 
 	client.Token = util.GenerateToken(200)
 	client.Secret = util.GenerateToken(32)
@@ -54,7 +54,7 @@ func GenerateRoomToken(client Client, Room string) string {
 	client.Target = Room
 
 	storeToken(client)
-	return client.Token
+	return client.Token, client.Secret
 }
 
 // storeToken stores a token in the cache
@@ -99,4 +99,14 @@ func DeleteToken(account string) {
 func ExistsToken(account string) bool {
 	_, found := tokenCache.Get(account)
 	return found
+}
+
+// RandomTestClient returns a random client for testing
+func RandomTestClient() Client {
+	id := util.GenerateToken(32)
+	return Client{
+		ID:       id,
+		Username: "tester " + id,
+		Tag:      "tag",
+	}
 }

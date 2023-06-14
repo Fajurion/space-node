@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -91,6 +92,22 @@ func main() {
 		util.Log.Println("Node " + node.ID + " disconnected")
 	}
 	connection.SetupDisconnections()
+
+	server.SetupChannels()
+
+	// Create testing room
+	if integration.Testing {
+		caching.CreateRoom("test")
+
+		amount, _ := strconv.Atoi(os.Getenv("TESTING_AMOUNT"))
+		for i := 0; i < amount; i++ {
+			client := caching.RandomTestClient()
+			tk, secret := caching.GenerateRoomToken(client, "test")
+			util.Log.Println("TEST CLIENT", i+1, "---------------------")
+			util.Log.Println("Token:", tk)
+			util.Log.Println("Secret:", secret)
+		}
+	}
 
 	// Close caches on exit
 	defer caching.CloseCaches()

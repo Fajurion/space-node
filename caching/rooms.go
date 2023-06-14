@@ -87,3 +87,8 @@ func RefreshRoom(roomID string) bool {
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
 	return true
 }
+
+// DeleteRoom deletes a room from the cache
+func DeleteRoom(roomID string) {
+	roomsCache.Del(roomID)
+}

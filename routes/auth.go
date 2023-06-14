@@ -41,7 +41,7 @@ func createToken(c *fiber.Ctx) error {
 	}
 
 	// Create token
-	token := caching.GenerateRoomToken(caching.Client{
+	token, secret := caching.GenerateRoomToken(caching.Client{
 		ID:       req.Account,
 		Username: req.Username,
 		Tag:      req.Tag,
@@ -49,6 +49,6 @@ func createToken(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"token":   token,
+		"token":   token + "." + secret,
 	})
 }

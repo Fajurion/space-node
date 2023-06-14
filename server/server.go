@@ -19,11 +19,6 @@ import (
 const PrefixNode = 'n'
 const PrefixClient = 'c'
 
-// Channels
-const ChannelRefresh = 'r'
-const ChannelAction = 'a'
-const ChannelData = 'd'
-
 var udpServ *net.UDPConn
 
 func Listen(domain string, port int) {
@@ -127,7 +122,7 @@ func Listen(domain string, port int) {
 			// Echo (for now)
 			_, err = udpServ.WriteTo(msg[2:], clientAddr)
 			if err != nil {
-				util.Log.Println("[udp] Error echoing message: ", err)
+				util.Log.Println("[udp] Error echoing message:", err)
 				continue
 			}
 
