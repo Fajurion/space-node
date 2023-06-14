@@ -1,6 +1,7 @@
 package caching
 
 import (
+	"sync"
 	"time"
 
 	"fajurion.com/voice-node/util"
@@ -30,7 +31,10 @@ func setupRoomsCache() {
 
 }
 
+var roomLocker map[string]*sync.Mutex = make(map[string]*sync.Mutex)
+
 type Room struct {
+	Mutex   *sync.Mutex
 	ID      string
 	Members []string
 }
@@ -39,32 +43,47 @@ const RoomTTL = time.Minute * 5
 
 // CreateRoom creates a room in the cache
 func CreateRoom(roomID string) {
-	roomsCache.SetWithTTL(roomID, Room{ID: roomID, Members: []string{}}, 1, RoomTTL)
+	roomsCache.SetWithTTL(roomID, Room{ID: roomID, Members: []string{}, Mutex: &sync.Mutex{}}, 1, RoomTTL)
+	roomsCache.Wait()
 }
 
 // JoinRoom adds a member to a room in the cache
 func JoinRoom(roomID string, member string) bool {
 
-	object, valid := roomsCache.Get(roomID)
+	room, valid := GetRoom(roomID)
+	if !valid {
+		return false
+	}
+	room.Mutex.Lock()
+
+	room, valid = GetRoom(roomID)
 	if !valid {
 		return false
 	}
 
-	room := object.(Room)
 	room.Members = append(room.Members, member)
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+
+	roomsCache.Wait()
+	room.Mutex.Unlock()
+
 	return true
 }
 
 // LeaveRoom removes a member from a room in the cache
 func LeaveRoom(roomID string, member string) bool {
 
-	object, valid := roomsCache.Get(roomID)
+	room, valid := GetRoom(roomID)
+	if !valid {
+		return false
+	}
+	room.Mutex.Lock()
+
+	room, valid = GetRoom(roomID)
 	if !valid {
 		return false
 	}
 
-	room := object.(Room)
 	for i, m := range room.Members {
 		if m == member {
 			room.Members = append(room.Members[:i], room.Members[i+1:]...)
@@ -73,6 +92,10 @@ func LeaveRoom(roomID string, member string) bool {
 	}
 
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+
+	roomsCache.Wait()
+	room.Mutex.Unlock()
+
 	return true
 }
 
@@ -91,4 +114,14 @@ func RefreshRoom(roomID string) bool {
 // DeleteRoom deletes a room from the cache
 func DeleteRoom(roomID string) {
 	roomsCache.Del(roomID)
+}
+
+// GetRoom gets a room from the cache
+func GetRoom(roomID string) (Room, bool) {
+	object, valid := roomsCache.Get(roomID)
+	if !valid {
+		return Room{}, false
+	}
+
+	return object.(Room), true
 }

@@ -33,8 +33,10 @@ func setupUsersCache() {
 type ConnectedClient struct {
 
 	//* Connection information
-	Address string       // IP and port of the client
-	Key     cipher.Block // Encryption key for the connection to the client
+	Address    string       // IP and port of the client
+	Key        cipher.Block // Encryption key for the connection to the client
+	TargetType int          // Type of the target
+	TargetID   string       // Target ID
 
 	//* User information
 	ID       string // User ID
@@ -54,6 +56,12 @@ func RefreshUser(userID string) bool {
 	client, valid := usersCache.Get(userID)
 	if !valid {
 		return false
+	}
+
+	// Refresh room if entered one
+	con := client.(ConnectedClient)
+	if con.TargetType == 1 {
+		RefreshRoom(con.TargetID)
 	}
 
 	usersCache.SetWithTTL(userID, client, 1, UserTTL)
