@@ -104,12 +104,21 @@ func (client Client) ToConnected(Address string) (ConnectedClient, bool) {
 		return ConnectedClient{}, false
 	}
 
+	// Send into room
+	valid := JoinRoom(client.Target, client.ID)
+	if !valid {
+		util.Log.Println("[udp]", "Error joining room", client.Target, "for", client.ID)
+		return ConnectedClient{}, false
+	}
+
 	return ConnectedClient{
-		Address:  Address,
-		Key:      cipher,
-		ID:       client.ID,
-		Username: client.Username,
-		Tag:      client.Tag,
+		Address:    Address,
+		Key:        cipher,
+		ID:         client.ID,
+		Username:   client.Username,
+		Tag:        client.Tag,
+		TargetType: client.TargetType,
+		Target:     client.Target,
 	}, true
 }
 

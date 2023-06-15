@@ -10,6 +10,7 @@ import (
 	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
+	"github.com/Fajurion/pipes/adapter"
 	"github.com/Fajurion/pipes/connection"
 	"github.com/Fajurion/pipes/receive"
 
@@ -102,8 +103,6 @@ func Listen(domain string, port int) {
 				util.Log.Println("[udp]", connection.ID+": Error:", err)
 			}
 
-			util.Log.Println("[udp]", string(msg[2:]), offset)
-
 			connection.LastMessage = time.Now().UnixMilli()
 			continue
 		}
@@ -152,6 +151,9 @@ func Listen(domain string, port int) {
 
 		// Join room if correct
 		if !auth(secret, client, clientAddr.String()) {
+			caching.DeleteConnection(clientAddr.String())
+			caching.DeleteUser(accountId)
+			adapter.RemoveUDP(accountId)
 			continue
 		}
 
@@ -196,6 +198,12 @@ func auth(secret string, client caching.Client, address string) bool {
 	caching.StoreConnection(connectedClient)
 	caching.StoreUser(connectedClient)
 	util.Log.Println("[udp]", connectedClient.ID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
+
+	err = AddAdapter(connectedClient)
+	if err != nil {
+		util.Log.Println("[udp] Error adding adapter: ", err)
+		return false
+	}
 
 	return true
 }

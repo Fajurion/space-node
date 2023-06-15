@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net"
 
-	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
+	"github.com/Fajurion/pipes"
 )
 
 var Channels map[byte]func(*Context) error = map[byte]func(*Context) error{}
@@ -39,23 +39,13 @@ func ExecuteChannel(account string, bytes []byte, addr net.Addr) error {
 		return err
 	}
 
+	if pipes.DebugLogs {
+		util.Log.Println("[udp] Executed channel", prefix, "for", account)
+	}
+
 	return nil
 }
 
 func SetupChannels() {
 	Channels['r'] = RefreshChannel
-}
-
-// Create a refresh channel function
-func RefreshChannel(c *Context) error {
-
-	if caching.LastConnectionRefresh(c.Addr.String()).Seconds() > caching.UserTTL.Seconds()/2 {
-		return errors.New("too many refreshes")
-	}
-
-	caching.RefreshConnection(c.Addr.String())
-	caching.RefreshUser(c.Account)
-	util.Log.Println("[udp] Refreshed connection for", c.Account)
-
-	return nil
 }
