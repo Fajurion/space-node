@@ -31,8 +31,6 @@ func setupRoomsCache() {
 
 }
 
-var roomLocker map[string]*sync.Mutex = make(map[string]*sync.Mutex)
-
 type Room struct {
 	Mutex   *sync.Mutex
 	ID      string
