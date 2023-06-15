@@ -98,6 +98,7 @@ func (client Client) ToConnected(Address string) (ConnectedClient, bool) {
 
 	// Generate encryption key using hash of token
 	key := sha256.Sum256([]byte(client.Token))
+
 	cipher, err := aes.NewCipher(key[:])
 	if err != nil {
 		util.Log.Println("[udp]", "Error creating cipher for", client.ID, err)

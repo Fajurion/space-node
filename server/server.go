@@ -150,49 +150,51 @@ func Listen(domain string, port int) {
 		}
 
 		// Join room if correct
-		if !auth(secret, client, clientAddr.String()) {
+		connectedClient, authenticated := auth(secret, client, clientAddr.String())
+		if !authenticated {
 			caching.DeleteConnection(clientAddr.String())
 			caching.DeleteUser(accountId)
 			adapter.RemoveUDP(accountId)
 			continue
 		}
 
+		SendConfirmation(clientAddr.String(), client.ID, &connectedClient.Key)
 		caching.JoinRoom(room, accountId)
 	}
 }
 
-func auth(secret string, client caching.Client, address string) bool {
+func auth(secret string, client caching.Client, address string) (caching.ConnectedClient, bool) {
 
 	cipher, err := aes.NewCipher(client.GetKey())
 	if err != nil {
 		util.Log.Println("[udp] Error creating cipher: ", err)
-		return false
+		return caching.ConnectedClient{}, false
 	}
 
 	var decrypted, decoded []byte
 	decoded, err = base64.StdEncoding.DecodeString(secret)
 	if err != nil {
 		util.Log.Println("[udp] Error decoding message: ", err)
-		return false
+		return caching.ConnectedClient{}, false
 	}
 
 	decrypted, err = pipesUtil.DecryptAES(cipher, decoded)
 	if err != nil {
 		util.Log.Println("[udp] Error decrypting message: ", err)
-		return false
+		return caching.ConnectedClient{}, false
 	}
 
 	decryptedMsg := string(decrypted)
 	if decryptedMsg != client.Secret {
 		util.Log.Println("[udp] Error: Invalid secret")
-		return false
+		return caching.ConnectedClient{}, false
 	}
 
 	// Add client
 	caching.DeleteToken(client.ID)
 	connectedClient, valid := client.ToConnected(address)
 	if !valid {
-		return false
+		return caching.ConnectedClient{}, false
 	}
 
 	caching.StoreConnection(connectedClient)
@@ -202,8 +204,8 @@ func auth(secret string, client caching.Client, address string) bool {
 	err = AddAdapter(connectedClient)
 	if err != nil {
 		util.Log.Println("[udp] Error adding adapter: ", err)
-		return false
+		return caching.ConnectedClient{}, false
 	}
 
-	return true
+	return connectedClient, true
 }

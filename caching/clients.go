@@ -62,7 +62,7 @@ func RefreshUser(userID string) bool {
 
 	// Refresh room if entered one
 	con := client.(ConnectedClient)
-	if con.TargetType == 1 {
+	if con.TargetType == TargetRoom {
 		RefreshRoom(con.Target)
 	}
 

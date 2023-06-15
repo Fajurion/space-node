@@ -102,7 +102,7 @@ func main() {
 		amount, _ := strconv.Atoi(os.Getenv("TESTING_AMOUNT"))
 		for i := 0; i < amount; i++ {
 			client := caching.RandomTestClient()
-			tk, secret := caching.GenerateRoomTestToken(client, "tes")
+			tk, secret := caching.GenerateRoomTestToken(client, "test")
 			util.Log.Println("TEST CLIENT", client.ID, "---------------------")
 			util.Log.Println("Token:", tk)
 			util.Log.Println("Secret:", secret)

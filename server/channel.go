@@ -40,7 +40,7 @@ func ExecuteChannel(account string, bytes []byte, addr net.Addr) error {
 	}
 
 	if pipes.DebugLogs {
-		util.Log.Println("[udp] Executed channel", prefix, "for", account)
+		util.Log.Println("[udp] Executed channel", string(prefix), "for", account)
 	}
 
 	return nil

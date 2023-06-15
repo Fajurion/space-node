@@ -56,3 +56,8 @@ func SendToIP(address string, key *cipher.Block, bytes []byte) error {
 	_, err = udpServ.WriteToUDP(bytes, addr)
 	return err
 }
+
+// SendConfirmation sends a confirmation to a client
+func SendConfirmation(address string, account string, key *cipher.Block) error {
+	return SendToIP(address, key, []byte(account))
+}
