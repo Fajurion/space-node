@@ -102,12 +102,22 @@ func LeaveRoom(roomID string, member string) bool {
 // RefreshRoom refreshes a room in the cache
 func RefreshRoom(roomID string) bool {
 
-	room, valid := roomsCache.Get(roomID)
+	room, valid := GetRoom(roomID)
+	if !valid {
+		return false
+	}
+	room.Mutex.Lock()
+
+	room, valid = GetRoom(roomID)
 	if !valid {
 		return false
 	}
 
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+
+	roomsCache.Wait()
+	room.Mutex.Unlock()
+
 	return true
 }
 
