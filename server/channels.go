@@ -48,4 +48,6 @@ func ExecuteChannel(account string, bytes []byte, addr net.Addr) error {
 
 func SetupChannels() {
 	Channels['r'] = RefreshChannel
+	Channels['c'] = ConfirmChannel
+	Channels['v'] = VoiceChannel
 }

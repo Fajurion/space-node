@@ -74,7 +74,7 @@ func main() {
 	}()
 
 	pipes.SetupUDP(fmt.Sprintf("%s:%d", args[0], port+1))
-	pipes.DebugLogs = integration.Testing
+	pipes.DebugLogs = false
 
 	// Test encryption
 	first := testEncryption()

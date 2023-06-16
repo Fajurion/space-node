@@ -30,6 +30,7 @@ func RefreshChannel(c *Context) error {
 }
 
 // ConfirmChannel is a channel that confirms the connection of a user
+// TODO: Ratelimit this
 func ConfirmChannel(c *Context) error {
 
 	client, valid := caching.GetUser(c.Account)
