@@ -4,31 +4,31 @@ go 1.20
 
 require (
 	fajurion.com/node-integration v0.0.0-00010101000000-000000000000
-	github.com/Fajurion/pipes v0.0.0-00010101000000-000000000000
+	github.com/Fajurion/pipes v0.0.0-20230616155010-fa960e4b653e
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/gofiber/fiber/v2 v2.44.0
+	github.com/gofiber/fiber/v2 v2.47.0
 )
 
 require nhooyr.io/websocket v1.8.7 // indirect
 
 require (
-	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/golang/glog v1.1.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 )
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/bytedance/sonic v1.8.8
+	github.com/bytedance/sonic v1.9.2
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/cornelk/hashmap v1.0.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/klauspost/compress v1.16.5 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
+	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.18 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
@@ -37,10 +37,10 @@ require (
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.46.0 // indirect
+	github.com/valyala/fasthttp v1.48.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/arch v0.4.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
 )
 
 replace fajurion.com/node-integration => ./node-integration
