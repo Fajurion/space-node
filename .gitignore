@@ -5,3 +5,4 @@ pipes/
 pipes/*
 
 .env
+app-linux
