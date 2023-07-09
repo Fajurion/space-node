@@ -112,17 +112,9 @@ func main() {
 	// Close caches on exit
 	defer caching.CloseCaches()
 
-	if integration.Testing {
-
-		// Start on localhost
-		go server.Listen("localhost", port+1)
-		app.Listen(fmt.Sprintf("localhost:%d", port))
-	} else {
-
-		// Start on all interfaces
-		go server.Listen("0.0.0.0", port+1)
-		app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
-	}
+	// Start on localhost
+	go server.Listen(os.Getenv("LISTEN"), port+1)
+	app.Listen(fmt.Sprintf("%s:%d", os.Getenv("LISTEN"), port))
 }
 
 // This function is used to test if the encryption is working properly and always different

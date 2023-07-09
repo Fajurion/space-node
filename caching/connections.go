@@ -2,8 +2,11 @@ package caching
 
 import (
 	"crypto/cipher"
+	"strings"
 	"time"
 
+	integration "fajurion.com/node-integration"
+	"fajurion.com/voice-node/util"
 	"github.com/dgraph-io/ristretto"
 )
 
@@ -27,15 +30,19 @@ func setupConnectionsCache() {
 
 type Connection struct {
 	ID          string       // ID of the account
+	Address     string       // Address of the client
 	Key         cipher.Block // Encryption key
 	LastMessage int64        // Last message received from the client
 }
 
 // StoreConnection stores a connection in the cache for the user ttl
-func StoreConnection(client ConnectedClient) {
-	connectionsCache.SetWithTTL(client.Address, Connection{
-		ID:  client.ID,
-		Key: client.Key,
+func StoreConnection(client ConnectedClient, clientAddress string) {
+
+	ip := strings.Split(client.Address, ":")[0]
+	connectionsCache.SetWithTTL(ip, Connection{
+		ID:      client.ID,
+		Address: clientAddress,
+		Key:     client.Key,
 	}, 1, UserTTL)
 }
 
@@ -78,5 +85,10 @@ func GetConnection(address string) (Connection, bool) {
 
 // DeleteConnection deletes a connection from the cache
 func DeleteConnection(address string) {
+
+	if integration.Testing {
+		util.Log.Println("[udp]", address, "was deleted")
+	}
+
 	connectionsCache.Del(address)
 }

@@ -58,11 +58,21 @@ func Listen(domain string, port int) {
 		msg := buffer[:offset]
 
 		// Check if client wants to send to node
-		connection, exists := caching.GetConnection(clientAddr.String())
+		ip := strings.Split(clientAddr.String(), ":")[0]
+		connection, exists := caching.GetConnection(ip)
 		node := msg[0] == PrefixNode
 
+		if integration.Testing {
+			util.Log.Println("[udp] Message from: ", ip, "with prefix: ", string(msg[0]), "found: ", exists)
+		}
+
 		if exists && node {
-			caching.DeleteConnection(clientAddr.String())
+
+			if integration.Testing {
+				util.Log.Println("[udp] Deleted client ", ip, " because it tried to send a node message")
+			}
+
+			caching.DeleteConnection(ip)
 			continue
 		}
 
@@ -80,7 +90,7 @@ func Listen(domain string, port int) {
 
 			if msg[0] != PrefixEncrypted {
 				util.Log.Println("[udp] Error: No encryption prefix")
-				caching.DeleteConnection(clientAddr.String())
+				caching.DeleteConnection(ip)
 				continue
 			}
 
@@ -93,7 +103,7 @@ func Listen(domain string, port int) {
 			// Check if sent too quickly
 			if time.Now().UnixMilli()-connection.LastMessage < 50 {
 				// TODO: Block (deletion for now)
-				caching.DeleteConnection(clientAddr.String())
+				caching.DeleteConnection(ip)
 				continue
 			}
 
@@ -113,7 +123,7 @@ func Listen(domain string, port int) {
 				util.Log.Println("[udp] Error: Invalid prefix")
 			}
 
-			caching.DeleteConnection(clientAddr.String())
+			caching.DeleteConnection(ip)
 			continue
 		}
 
@@ -150,9 +160,9 @@ func Listen(domain string, port int) {
 		}
 
 		// Join room if correct
-		connectedClient, authenticated := auth(secret, client, clientAddr.String())
+		connectedClient, authenticated := auth(secret, client, ip, clientAddr.String())
 		if !authenticated {
-			caching.DeleteConnection(clientAddr.String())
+			caching.DeleteConnection(ip)
 			caching.DeleteUser(accountId)
 			adapter.RemoveUDP(accountId)
 			continue
@@ -163,7 +173,7 @@ func Listen(domain string, port int) {
 	}
 }
 
-func auth(secret string, client caching.Client, address string) (caching.ConnectedClient, bool) {
+func auth(secret string, client caching.Client, address string, clientAddress string) (caching.ConnectedClient, bool) {
 
 	cipher, err := aes.NewCipher(client.GetKey())
 	if err != nil {
@@ -192,12 +202,12 @@ func auth(secret string, client caching.Client, address string) (caching.Connect
 
 	// Add client
 	caching.DeleteToken(client.ID)
-	connectedClient, valid := client.ToConnected(address)
+	connectedClient, valid := client.ToConnected(clientAddress)
 	if !valid {
 		return caching.ConnectedClient{}, false
 	}
 
-	caching.StoreConnection(connectedClient)
+	caching.StoreConnection(connectedClient, clientAddress)
 	caching.StoreUser(connectedClient)
 	util.Log.Println("[udp]", connectedClient.ID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
 

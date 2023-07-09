@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"strings"
 
 	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
@@ -16,7 +17,8 @@ func RefreshChannel(c *Context) error {
 		return errors.New("too many refreshes")
 	}
 
-	caching.RefreshConnection(c.Addr.String())
+	ip := strings.Split(c.Addr.String(), ":")[0]
+	caching.RefreshConnection(ip)
 	caching.RefreshUser(c.Account)
 	util.Log.Println("[udp] Refreshed connection for", c.Account)
 
