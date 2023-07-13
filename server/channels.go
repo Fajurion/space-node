@@ -11,12 +11,13 @@ import (
 var Channels map[byte]func(*Context) error = map[byte]func(*Context) error{}
 
 type Context struct {
-	Account string
-	Bytes   []byte
-	Addr    net.Addr
+	Account  string
+	ClientID string
+	Bytes    []byte
+	Addr     net.Addr
 }
 
-func ExecuteChannel(account string, bytes []byte, addr net.Addr) error {
+func ExecuteChannel(account string, clientID string, bytes []byte, addr net.Addr) error {
 
 	prefix := bytes[0]
 	channel := Channels[prefix]
@@ -29,9 +30,10 @@ func ExecuteChannel(account string, bytes []byte, addr net.Addr) error {
 	}
 
 	var context = Context{
-		Account: account,
-		Bytes:   bytes[2:],
-		Addr:    addr,
+		ClientID: clientID,
+		Account:  account,
+		Bytes:    bytes[2:],
+		Addr:     addr,
 	}
 
 	err := channel(&context)

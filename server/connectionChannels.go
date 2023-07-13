@@ -17,7 +17,7 @@ func RefreshChannel(c *Context) error {
 		return errors.New("too many refreshes")
 	}
 
-	ip := strings.Split(c.Addr.String(), ":")[0]
+	ip := strings.Split(c.Addr.String(), ":")[0] + c.ClientID
 	caching.RefreshConnection(ip)
 	caching.RefreshUser(c.Account)
 	util.Log.Println("[udp] Refreshed connection for", c.Account)

@@ -38,7 +38,7 @@ type Connection struct {
 // StoreConnection stores a connection in the cache for the user ttl
 func StoreConnection(client ConnectedClient, clientAddress string) {
 
-	ip := strings.Split(client.Address, ":")[0]
+	ip := strings.Split(client.Address, ":")[0] + client.ClientID
 	connectionsCache.SetWithTTL(ip, Connection{
 		ID:      client.ID,
 		Address: clientAddress,

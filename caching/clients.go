@@ -33,8 +33,9 @@ func setupUsersCache() {
 type ConnectedClient struct {
 
 	//* Connection information
-	Address string       // IP and port of the client
-	Key     cipher.Block // Encryption key for the connection to the client
+	Address  string       // IP and port of the client
+	Key      cipher.Block // Encryption key for the connection to the client
+	ClientID string       // Client ID
 
 	//* Target information
 	TargetType int    // Type of the target

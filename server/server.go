@@ -54,16 +54,27 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		// Extract message
+		//* protocol standard: PREFIX+CLIENT_ID:CHANNEL:MESSAGE
+		// Prefix: 1 byte
+		// Client ID: 4 bytes
+		// Channel: 1 byte
+		// Message: rest of the packet
 		msg := buffer[:offset]
 
+		if len(msg) < 9 {
+			util.Log.Println("[udp] Error: Invalid message")
+			continue
+		}
+
 		// Check if client wants to send to node
-		ip := strings.Split(clientAddr.String(), ":")[0]
+		endIndex := 6
+		clientID := string(msg[1 : endIndex-1])
+		ip := strings.Split(clientAddr.String(), ":")[0] + clientID // Get client ip + client id
 		connection, exists := caching.GetConnection(ip)
 		node := msg[0] == PrefixNode
 
 		if integration.Testing {
-			util.Log.Println("[udp] Message from: ", ip, "with prefix: ", string(msg[0]), "found: ", exists)
+			util.Log.Println("[udp] Message from:", ip, "with prefix: ", string(msg[0]), "found: ", exists)
 		}
 
 		if exists && node {
@@ -94,7 +105,7 @@ func Listen(domain string, port int) {
 				continue
 			}
 
-			decrypted, err := pipesUtil.DecryptAES(connection.Key, msg[2:])
+			decrypted, err := pipesUtil.DecryptAES(connection.Key, msg[endIndex:])
 			if err != nil {
 				util.Log.Println("[udp] Error: Invalid message")
 				continue
@@ -108,7 +119,7 @@ func Listen(domain string, port int) {
 			}
 
 			// Handle channels
-			err = ExecuteChannel(connection.ID, decrypted, clientAddr)
+			err = ExecuteChannel(connection.ID, clientID, decrypted, clientAddr)
 			if err != nil {
 				util.Log.Println("[udp]", connection.ID+": Error:", err)
 			}
@@ -128,7 +139,8 @@ func Listen(domain string, port int) {
 		}
 
 		//* Register client (AUTH)
-		stringMsg := string(msg[2:])
+		stringMsg := string(msg[endIndex:])
+		util.Log.Println("[udp] Auth packet: ", stringMsg)
 		args := strings.Split(stringMsg, ":")
 
 		msg = msg[2:]
@@ -160,7 +172,7 @@ func Listen(domain string, port int) {
 		}
 
 		// Join room if correct
-		connectedClient, authenticated := auth(secret, client, ip, clientAddr.String())
+		connectedClient, authenticated := auth(secret, client, ip, clientAddr.String(), clientID)
 		if !authenticated {
 			caching.DeleteConnection(ip)
 			caching.DeleteUser(accountId)
@@ -173,7 +185,7 @@ func Listen(domain string, port int) {
 	}
 }
 
-func auth(secret string, client caching.Client, address string, clientAddress string) (caching.ConnectedClient, bool) {
+func auth(secret string, client caching.Client, address string, clientAddress string, clientID string) (caching.ConnectedClient, bool) {
 
 	cipher, err := aes.NewCipher(client.GetKey())
 	if err != nil {
@@ -202,7 +214,7 @@ func auth(secret string, client caching.Client, address string, clientAddress st
 
 	// Add client
 	caching.DeleteToken(client.ID)
-	connectedClient, valid := client.ToConnected(clientAddress)
+	connectedClient, valid := client.ToConnected(clientAddress, clientID)
 	if !valid {
 		return caching.ConnectedClient{}, false
 	}

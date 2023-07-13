@@ -94,7 +94,7 @@ func GetToken(account string) (Client, bool) {
 	return Client{}, false
 }
 
-func (client Client) ToConnected(Address string) (ConnectedClient, bool) {
+func (client Client) ToConnected(address string, clientID string) (ConnectedClient, bool) {
 
 	// Generate encryption key using hash of token
 	key := sha256.Sum256([]byte(client.Token))
@@ -113,8 +113,9 @@ func (client Client) ToConnected(Address string) (ConnectedClient, bool) {
 	}
 
 	return ConnectedClient{
-		Address:    Address,
+		Address:    address,
 		Key:        cipher,
+		ClientID:   clientID,
 		ID:         client.ID,
 		Username:   client.Username,
 		Tag:        client.Tag,
