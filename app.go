@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -46,6 +47,17 @@ func main() {
 	integration.SetOnline()
 
 	pipes.SetupSocketless("http://" + domain + "/socketless")
+
+	// Connect to other nodes
+	pipes.IterateNodes(func(_ string, node pipes.Node) bool {
+
+		log.Println("Connecting to node " + node.WS)
+
+		if err := connection.ConnectWS(node); err != nil {
+			log.Println(err.Error())
+		}
+		return true
+	})
 
 	// Check if test mode or production
 	args := strings.Split(domain, ":")
@@ -111,4 +123,36 @@ func testEncryption() []byte {
 	util.Log.Println("Decrypted message: " + string(decrypted))
 
 	return encrypted
+}
+
+// Shared function between all nodes
+func parseNodes(res map[string]interface{}) bool {
+
+	if res["nodes"] == nil {
+		return true
+	}
+
+	nodeList := res["nodes"].([]interface{})
+
+	for _, node := range nodeList {
+		n := node.(map[string]interface{})
+
+		// Extract port and domain
+		args := strings.Split(n["domain"].(string), ":")
+		domain := args[0]
+		port, err := strconv.Atoi(args[1])
+		if err != nil {
+			log.Println("Error: Couldn't parse port of node " + n["id"].(string))
+			return true
+		}
+
+		// Add node to pipes
+		pipes.AddNode(pipes.Node{
+			ID:    fmt.Sprintf("%d", int64(n["id"].(float64))),
+			Token: n["token"].(string),
+			WS:    "ws://" + fmt.Sprintf("%s:%d", domain, port) + "/adoption",
+		})
+	}
+
+	return false
 }
