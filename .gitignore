@@ -4,5 +4,9 @@ node-integration/*
 pipes/
 pipes/*
 
+pipes-fiber/
+pipes-fiber/*
+
+
 .env
 app-linux

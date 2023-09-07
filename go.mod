@@ -44,5 +44,5 @@ require (
 )
 
 replace fajurion.com/node-integration => ./node-integration
-
+replace github.com/Fajurion/pipes-fiber => ./pipes-fiber
 replace github.com/Fajurion/pipes => ./pipes
