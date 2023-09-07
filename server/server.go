@@ -11,21 +11,16 @@ import (
 	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipes/adapter"
-	"github.com/Fajurion/pipes/connection"
-	"github.com/Fajurion/pipes/receive"
 
 	pipesUtil "github.com/Fajurion/pipes/util"
 )
 
-const PrefixNode = 'n'      // For node auth & communication
 const PrefixClient = 'c'    // For client auth
 const PrefixEncrypted = 'e' // For encrypted traffic with the client
 
 var udpServ *net.UDPConn
 
 func Listen(domain string, port int) {
-
-	connection.GeneralPrefix = []byte{PrefixNode, ':'}
 
 	addr := net.UDPAddr{
 		Port: port,
@@ -71,29 +66,9 @@ func Listen(domain string, port int) {
 		clientID := string(msg[1 : endIndex-1])
 		ip := strings.Split(clientAddr.String(), ":")[0] + clientID // Get client ip + client id
 		connection, exists := caching.GetConnection(ip)
-		node := msg[0] == PrefixNode
 
 		if integration.Testing {
 			util.Log.Println("[udp] Message from:", ip, "with prefix: ", string(msg[0]), "found: ", exists)
-		}
-
-		if exists && node {
-
-			if integration.Testing {
-				util.Log.Println("[udp] Deleted client ", ip, " because it tried to send a node message")
-			}
-
-			caching.DeleteConnection(ip)
-			continue
-		}
-
-		if node {
-			err := receive.ReceiveUDP(msg[2:])
-			if err != nil {
-				util.Log.Println("[udp] Error receiving node message: ", err)
-			}
-
-			continue
 		}
 
 		// Register client

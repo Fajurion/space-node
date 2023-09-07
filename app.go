@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipes/connection"
@@ -34,7 +33,7 @@ func main() {
 		return
 	}
 
-	pipes.SetupCurrent(integration.NODE_ID, integration.NODE_TOKEN)
+	pipes.SetupCurrent(fmt.Sprintf("%d", integration.NODE_ID), integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
 
 	// Query current node
@@ -44,8 +43,7 @@ func main() {
 	util.Log.Printf("Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
 
 	// Report online status
-	res := integration.SetOnline()
-	parseNodes(res)
+	integration.SetOnline()
 
 	pipes.SetupSocketless("http://" + domain + "/socketless")
 
@@ -56,25 +54,6 @@ func main() {
 		util.Log.Println("Error: Couldn't parse port of current node")
 		return
 	}
-
-	// Wait for servers to start before adoption
-	go func() {
-		time.Sleep(time.Second * 2)
-		pipes.IterateNodes(func(_ string, node pipes.Node) bool {
-
-			util.Log.Println("Connecting to node " + node.ID)
-
-			if err := connection.ConnectUDP(node); err != nil {
-				util.Log.Println("Error: Couldn't connect to node " + node.ID)
-				return false
-			}
-
-			return true
-		})
-	}()
-
-	pipes.SetupUDP(fmt.Sprintf("%s:%d", args[0], port+1))
-	pipes.DebugLogs = false
 
 	// Test encryption
 	first := testEncryption()
@@ -87,12 +66,7 @@ func main() {
 
 	util.Log.Println("Encryption is working properly!")
 
-	// Enable disconnection handling
-	connection.DisconnectHandler = func(node pipes.Node) {
-		util.Log.Println("Node " + node.ID + " disconnected")
-	}
-	connection.SetupDisconnections()
-
+	pipes.DebugLogs = true
 	server.SetupChannels()
 
 	// Create testing room
@@ -137,36 +111,4 @@ func testEncryption() []byte {
 	util.Log.Println("Decrypted message: " + string(decrypted))
 
 	return encrypted
-}
-
-// Shared function between all nodes
-func parseNodes(res map[string]interface{}) bool {
-
-	if res["nodes"] == nil {
-		return true
-	}
-
-	nodeList := res["nodes"].([]interface{})
-
-	for _, node := range nodeList {
-		n := node.(map[string]interface{})
-
-		// Extract port and domain
-		args := strings.Split(n["domain"].(string), ":")
-		domain := args[0]
-		port, err := strconv.Atoi(args[1])
-		if err != nil {
-			util.Log.Println("Error: Couldn't parse port of node " + n["id"].(string))
-			return true
-		}
-
-		pipes.AddNode(pipes.Node{
-			ID:    fmt.Sprintf("%d", int(n["id"].(float64))),
-			Token: n["token"].(string),
-			SL:    fmt.Sprintf("http://%s:%d/socketless", domain, port),
-			UDP:   fmt.Sprintf("%s:%d", domain, port+1),
-		})
-	}
-
-	return false
 }

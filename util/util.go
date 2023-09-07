@@ -2,10 +2,12 @@ package util
 
 import (
 	"crypto/rand"
+	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/bytedance/sonic"
@@ -62,4 +64,17 @@ func PostRaw(url string, body map[string]interface{}) (map[string]interface{}, e
 	}
 
 	return data, nil
+}
+
+func Node64(id int64) string {
+	return fmt.Sprintf("%d", id)
+}
+
+func NodeTo64(id string) int64 {
+	i, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return i
 }
