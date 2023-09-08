@@ -70,7 +70,6 @@ func main() {
 	util.Log.Println("Encryption is working properly!")
 
 	pipes.DebugLogs = true
-	server.SetupChannels()
 
 	// Create testing room
 	if integration.Testing {
@@ -80,7 +79,7 @@ func main() {
 		for i := 0; i < amount; i++ {
 			client := caching.RandomTestClient()
 			tk, secret := caching.GenerateRoomTestToken(client, "test")
-			util.Log.Println("TEST CLIENT", client.ID, "---------------------")
+			util.Log.Println("TEST CLIENT", client.Account, "---------------------")
 			util.Log.Println("Token:", tk)
 			util.Log.Println("Secret:", secret)
 		}
