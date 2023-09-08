@@ -14,7 +14,7 @@ import (
 func AddAdapter(client caching.ConnectedClient) error {
 
 	adapter.AdaptUDP(adapter.Adapter{
-		ID:      client.ID,
+		ID:      client.Account,
 		Receive: sendFromAdapter,
 		Data:    &client,
 	})

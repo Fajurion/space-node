@@ -36,7 +36,7 @@ func initializeConnection(c *fiber.Ctx) error {
 
 	// Create token
 	token, secret := caching.GenerateRoomToken(caching.Client{
-		ID: req.Account,
+		Account: req.Account,
 	}, req.Session)
 
 	tk := token + "." + secret

@@ -16,11 +16,7 @@ func VoiceChannel(c *Context) error {
 		return errors.New("user not found")
 	}
 
-	if client.TargetType != caching.TargetRoom {
-		return errors.New("not implemented")
-	}
-
-	room, valid := caching.GetRoom(client.Target)
+	room, valid := caching.GetRoom(client.Room)
 	if !valid {
 		return errors.New("room not found")
 	}
@@ -39,7 +35,7 @@ func VoiceChannel(c *Context) error {
 		Channel: pipes.Conversation(room.Members, []string{pipes.CurrentNode.ID}),
 		Event: pipes.Event{
 			Name:   "voice",
-			Sender: client.ID,
+			Sender: client.Account,
 			Data: map[string]interface{}{
 				"data": voiceString,
 			},

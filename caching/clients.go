@@ -20,7 +20,7 @@ func setupUsersCache() {
 		OnEvict: func(item *ristretto.Item) {
 			client := item.Value.(ConnectedClient)
 
-			util.Log.Println("[udp]", client.ID, "("+client.Username+"#"+client.Tag+")", "disconnected")
+			util.Log.Println("[udp]", client.Account, "disconnected")
 		},
 	})
 
@@ -37,20 +37,14 @@ type ConnectedClient struct {
 	Key      cipher.Block // Encryption key for the connection to the client
 	ClientID string       // Client ID
 
-	//* Target information
-	TargetType int    // Type of the target
-	Target     string // Target ID
-
-	//* User information
-	ID       string // User ID
-	Username string // Username
-	Tag      string // Tag
-
+	//* Other information
+	Account string // Account ID
+	Room    string // Room ID
 }
 
 // StoreUser stores a user in the cache
 func StoreUser(client ConnectedClient) {
-	usersCache.SetWithTTL(client.ID, client, 1, UserTTL)
+	usersCache.SetWithTTL(client.Account, client, 1, UserTTL)
 }
 
 // RefreshUser refreshes a user in the cache
@@ -63,9 +57,7 @@ func RefreshUser(userID string) bool {
 
 	// Refresh room if entered one
 	con := client.(ConnectedClient)
-	if con.TargetType == TargetRoom {
-		RefreshRoom(con.Target)
-	}
+	RefreshRoom(con.Room)
 
 	usersCache.SetWithTTL(userID, client, 1, UserTTL)
 	return true

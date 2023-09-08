@@ -23,7 +23,7 @@ func setupTokenCache() {
 		OnEvict: func(item *ristretto.Item) {
 			client := item.Value.(Client)
 
-			util.Log.Println("[udp]", client.ID, "was deleted")
+			util.Log.Println("[udp]", client.Account, "was deleted")
 		},
 	})
 
@@ -33,17 +33,12 @@ func setupTokenCache() {
 
 }
 
-const TargetRoom = 0
-const TargetWorld = 1 // When world protocol is implemented
-
 type Client struct {
-	ID string // Account ID
+	Account string // Account ID
 
 	Token  string // Auth token
 	Secret string // Auth secret
-
-	TargetType int    // Target type
-	Target     string // Target id
+	Room   string // Room id
 }
 
 // Time for which a token is valid
@@ -54,8 +49,7 @@ func GenerateRoomToken(client Client, Room string) (string, string) {
 
 	client.Token = util.GenerateToken(200)
 	client.Secret = util.GenerateToken(32)
-	client.TargetType = TargetRoom
-	client.Target = Room
+	client.Room = Room
 
 	storeToken(client)
 	return client.Token, client.Secret
@@ -68,10 +62,9 @@ func GenerateRoomTestToken(client Client, Room string) (string, string) {
 		panic("Cannot generate test token when not testing")
 	}
 
-	client.Token = client.ID
-	client.Secret = client.ID
-	client.TargetType = TargetRoom
-	client.Target = Room
+	client.Token = client.Account
+	client.Secret = client.Account
+	client.Room = Room
 
 	storeToken(client)
 	return client.Token, client.Secret
@@ -79,7 +72,7 @@ func GenerateRoomTestToken(client Client, Room string) (string, string) {
 
 // storeToken stores a token in the cache
 func storeToken(client Client) {
-	tokenCache.SetWithTTL(client.ID, client, 1, TokenTTL)
+	tokenCache.SetWithTTL(client.Account, client, 1, TokenTTL)
 }
 
 // GetToken returns a token from the cache
@@ -98,24 +91,23 @@ func (client Client) ToConnected(address string, clientID string) (ConnectedClie
 
 	cipher, err := aes.NewCipher(key[:])
 	if err != nil {
-		util.Log.Println("[udp]", "Error creating cipher for", client.ID, err)
+		util.Log.Println("[udp]", "Error creating cipher for", client.Account, err)
 		return ConnectedClient{}, false
 	}
 
 	// Send into room
-	valid := JoinRoom(client.Target, client.ID)
+	valid := JoinRoom(client.Room, client.Account)
 	if !valid {
-		util.Log.Println("[udp]", "Error joining room", client.Target, "for", client.ID)
+		util.Log.Println("[udp]", "Error joining room", client.Room, "for", client.Account)
 		return ConnectedClient{}, false
 	}
 
 	return ConnectedClient{
-		Address:    address,
-		Key:        cipher,
-		ClientID:   clientID,
-		ID:         client.ID,
-		TargetType: client.TargetType,
-		Target:     client.Target,
+		Address:  address,
+		Key:      cipher,
+		ClientID: clientID,
+		Account:  client.Account,
+		Room:     client.Room,
 	}, true
 }
 
@@ -139,6 +131,6 @@ func ExistsToken(account string) bool {
 func RandomTestClient() Client {
 	id := util.GenerateToken(8)
 	return Client{
-		ID: id,
+		Account: id,
 	}
 }

@@ -140,7 +140,7 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		if client.ID != accountId {
+		if client.Account != accountId {
 			util.Log.Println("[udp] Error: Invalid auth token (invalid account id)")
 			caching.DeleteToken(accountId)
 			continue
@@ -155,7 +155,7 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		SendConfirmation(clientAddr.String(), client.ID, &connectedClient.Key)
+		SendConfirmation(clientAddr.String(), client.Account, &connectedClient.Key)
 		caching.JoinRoom(room, accountId)
 	}
 }
@@ -188,7 +188,7 @@ func auth(secret string, client caching.Client, address string, clientAddress st
 	}
 
 	// Add client
-	caching.DeleteToken(client.ID)
+	caching.DeleteToken(client.Account)
 	connectedClient, valid := client.ToConnected(clientAddress, clientID)
 	if !valid {
 		return caching.ConnectedClient{}, false
@@ -196,7 +196,7 @@ func auth(secret string, client caching.Client, address string, clientAddress st
 
 	caching.StoreConnection(connectedClient, clientAddress)
 	caching.StoreUser(connectedClient)
-	util.Log.Println("[udp]", connectedClient.ID+"("+connectedClient.Username+"#"+connectedClient.Tag+") connected")
+	util.Log.Println("[udp]", connectedClient.Account, "connected")
 
 	err = AddAdapter(connectedClient)
 	if err != nil {

@@ -40,7 +40,7 @@ func StoreConnection(client ConnectedClient, clientAddress string) {
 
 	ip := strings.Split(client.Address, ":")[0] + client.ClientID
 	connectionsCache.SetWithTTL(ip, Connection{
-		ID:      client.ID,
+		ID:      client.Account,
 		Address: clientAddress,
 		Key:     client.Key,
 	}, 1, UserTTL)
