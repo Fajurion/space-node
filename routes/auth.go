@@ -40,7 +40,7 @@ func initializeConnection(c *fiber.Ctx) error {
 	}, req.Session)
 
 	tk := token + "." + secret
-	pipesfiber.AddToken(tk, pipesfiber.ConnectionToken{
+	pipesfiber.AddToken(token, pipesfiber.ConnectionToken{
 		UserID:  req.Account,
 		Session: req.Session, // Again, this would be the room ID
 		Data:    nil,
