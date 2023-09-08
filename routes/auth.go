@@ -3,52 +3,44 @@ package routes
 import (
 	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/caching"
-	"fajurion.com/voice-node/util"
+	"github.com/Fajurion/pipesfiber"
 	"github.com/gofiber/fiber/v2"
 )
 
-func initalize(c *fiber.Ctx) error {
-	return util.FailedRequest(c, "not.implemented", nil)
+type intializeRequest struct {
+	Account   string `json:"account"` // Account ID
+	Session   string `json:"session"` // Room ID in this app
+	NodeToken string `json:"node_token"`
+	End       int64  `json:"end"`
 }
 
-type createTokenRequest struct {
+func initializeConnection(c *fiber.Ctx) error {
 
-	// Node data
-	Token      string `json:"token"`
-	TargetType int    `json:"targetType"`
-	Target     string `json:"target"`
-
-	// Account data
-	Account  string `json:"account"`
-	Username string `json:"username"`
-	Tag      string `json:"tag"`
-}
-
-func createToken(c *fiber.Ctx) error {
-
-	// Parse request
-	var req createTokenRequest
+	// Parse the request
+	var req intializeRequest
 	if err := c.BodyParser(&req); err != nil {
-		return util.InvalidRequest(c)
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	if req.Token != integration.NODE_TOKEN {
-		return util.InvalidRequest(c)
-	}
-
-	if req.TargetType != caching.TargetRoom {
-		return util.InvalidRequest(c)
+	if integration.NODE_TOKEN != req.NodeToken {
+		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
 	// Create token
 	token, secret := caching.GenerateRoomToken(caching.Client{
-		ID:       req.Account,
-		Username: req.Username,
-		Tag:      req.Tag,
-	}, req.Target)
+		ID: req.Account,
+	}, req.Session)
+
+	tk := token + "." + secret
+	pipesfiber.AddToken(tk, pipesfiber.ConnectionToken{
+		UserID:  req.Account,
+		Session: req.Session, // Again, this would be the room ID
+		Data:    nil,
+	})
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"token":   token + "." + secret,
+		"load":    0, // TODO: Add real load in the future
+		"token":   tk,
 	})
 }

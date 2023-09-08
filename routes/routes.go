@@ -17,8 +17,7 @@ func SetupRoutes(router fiber.Router) {
 	router.Post("/ping", ping)
 
 	// Auth
-	router.Post("/auth/initalize", initalize)
-	router.Post("/auth/token", createToken)
+	router.Post("/auth/initalize", initializeConnection)
 
 	setupPipesFiber(router)
 }

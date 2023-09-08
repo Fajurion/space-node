@@ -37,16 +37,13 @@ const TargetRoom = 0
 const TargetWorld = 1 // When world protocol is implemented
 
 type Client struct {
+	ID string // Account ID
+
 	Token  string // Auth token
 	Secret string // Auth secret
 
 	TargetType int    // Target type
 	Target     string // Target id
-
-	ID       string // User ID
-	Username string // Username
-	Tag      string // Tag
-	Session  string // Connected session
 }
 
 // Time for which a token is valid
@@ -117,8 +114,6 @@ func (client Client) ToConnected(address string, clientID string) (ConnectedClie
 		Key:        cipher,
 		ClientID:   clientID,
 		ID:         client.ID,
-		Username:   client.Username,
-		Tag:        client.Tag,
 		TargetType: client.TargetType,
 		Target:     client.Target,
 	}, true
@@ -144,8 +139,6 @@ func ExistsToken(account string) bool {
 func RandomTestClient() Client {
 	id := util.GenerateToken(8)
 	return Client{
-		ID:       id,
-		Username: "tester " + id,
-		Tag:      "tag",
+		ID: id,
 	}
 }
