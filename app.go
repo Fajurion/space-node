@@ -43,21 +43,12 @@ func main() {
 
 	util.Log.Printf("Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
 
-	// Report online status
-	integration.SetOnline()
-
 	pipes.SetupSocketless("http://" + domain + "/socketless")
+	pipes.SetupWS("ws://" + domain + "/adoption")
 
-	// Connect to other nodes
-	pipes.IterateNodes(func(_ string, node pipes.Node) bool {
-
-		log.Println("Connecting to node " + node.WS)
-
-		if err := connection.ConnectWS(node); err != nil {
-			log.Println(err.Error())
-		}
-		return true
-	})
+	// Report online status
+	res := integration.SetOnline()
+	parseNodes(res)
 
 	// Check if test mode or production
 	args := strings.Split(domain, ":")
@@ -97,6 +88,17 @@ func main() {
 
 	// Close caches on exit
 	defer caching.CloseCaches()
+
+	// Connect to other nodes
+	pipes.IterateNodes(func(_ string, node pipes.Node) bool {
+
+		log.Println("Connecting to node " + node.WS)
+
+		if err := connection.ConnectWS(node); err != nil {
+			log.Println(err.Error())
+		}
+		return true
+	})
 
 	// Start on localhost
 	go server.Listen(os.Getenv("LISTEN"), port+1)
