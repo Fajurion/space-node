@@ -31,7 +31,7 @@ func Listen(domain string, port int) {
 	util.Log.Println("UDP server started")
 
 	for {
-		offset, clientAddr, err := udpServ.ReadFrom(buffer) // Use client addr to rate limit in the future
+		offset, _, err := udpServ.ReadFrom(buffer) // Use client addr to rate limit in the future
 		if err != nil {
 			util.Log.Println("[udp] Error: ", err)
 			continue
