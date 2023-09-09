@@ -7,19 +7,14 @@ import (
 )
 
 func SetupMemory() {
-	setupTokenCache()
-	setupConnectionsCache()
-	setupUsersCache()
 	setupRoomsCache()
+	setupRoomConnectionsCache()
 }
 
 func CloseCaches() {
 	util.Log.Println("Closing caches...")
-
-	tokenCache.Close()
-	connectionsCache.Close()
-	usersCache.Close()
 	roomsCache.Close()
+	roomConnectionsCache.Close()
 }
 
 const UserTTL = 30 * time.Second

@@ -2,7 +2,7 @@ package routes
 
 import (
 	integration "fajurion.com/node-integration"
-	"fajurion.com/voice-node/caching"
+	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipesfiber"
 	"github.com/gofiber/fiber/v2"
 )
@@ -34,13 +34,8 @@ func initializeConnection(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	// Create token
-	token, secret := caching.GenerateRoomToken(caching.Client{
-		Account: req.Account,
-	}, req.Session)
-
-	tk := token + "." + secret
-	pipesfiber.AddToken(token, pipesfiber.ConnectionToken{
+	tk := util.GenerateToken(200)
+	pipesfiber.AddToken(tk, pipesfiber.ConnectionToken{
 		UserID:  req.Account,
 		Session: req.Session, // Again, this would be the room ID
 		Data:    nil,

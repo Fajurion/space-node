@@ -34,14 +34,15 @@ func setupRoomsCache() {
 type Room struct {
 	Mutex   *sync.Mutex
 	ID      string
-	Members []string
+	Data    string   // Encrypted room data
+	Members []string // Encrypted member IDs
 }
 
 const RoomTTL = time.Minute * 5
 
 // CreateRoom creates a room in the cache
 func CreateRoom(roomID string) {
-	roomsCache.SetWithTTL(roomID, Room{ID: roomID, Members: []string{}, Mutex: &sync.Mutex{}}, 1, RoomTTL)
+	roomsCache.SetWithTTL(roomID, Room{&sync.Mutex{}, roomID, "", []string{}}, 1, RoomTTL)
 	roomsCache.Wait()
 }
 
