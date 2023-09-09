@@ -15,6 +15,7 @@ import (
 func SetupRoutes(router fiber.Router) {
 	router.Post("/socketless", socketlessEvent)
 	router.Post("/ping", ping)
+	router.Post("/create", createRoom)
 
 	// Auth
 	router.Post("/auth/initalize", initializeConnection)
@@ -47,6 +48,7 @@ func setupPipesFiber(router fiber.Router) {
 
 		// Handle enter network
 		ClientConnectHandler: func(client *pipesfiber.Client) bool {
+
 			if integration.Testing {
 				log.Println("Client connected:", client.ID)
 			}

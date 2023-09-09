@@ -33,17 +33,20 @@ func setupRoomsCache() {
 
 type Room struct {
 	Mutex   *sync.Mutex
-	ID      string
+	ID      string   // ID acts as a sort of token for the room (anyone with the ID can join)
 	Data    string   // Encrypted room data
+	Start   int64    // Timestamp of when the room was created
 	Members []string // Encrypted member IDs
 }
 
 const RoomTTL = time.Minute * 5
 
 // CreateRoom creates a room in the cache
-func CreateRoom(roomID string) {
-	roomsCache.SetWithTTL(roomID, Room{&sync.Mutex{}, roomID, "", []string{}}, 1, RoomTTL)
+func CreateRoom(data string) string {
+	roomId := util.GenerateToken(16)
+	roomsCache.SetWithTTL(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli(), []string{}}, 1, RoomTTL)
 	roomsCache.Wait()
+	return roomId
 }
 
 // JoinRoom adds a member to a room in the cache
