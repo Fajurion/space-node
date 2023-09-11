@@ -19,9 +19,9 @@ func setupRoomConnectionsCache() {
 
 	var err error
 	roomConnectionsCache, err = ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e4, // expecting to store 1k room connections
-		MaxCost:     1e3, // maximum items in the cache (with cost 1 on each set)
-		BufferItems: 64,  // Some random number, check docs
+		NumCounters: 1e4,     // expecting to store 1k room connections
+		MaxCost:     1 << 30, // maximum cost of cache is 1GB
+		BufferItems: 64,      // Some random number, check docs
 		OnEvict: func(item *ristretto.Item) {
 			util.Log.Println("[udp]", item.Key, "'s connections were deleted")
 		},

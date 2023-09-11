@@ -5,8 +5,9 @@ import (
 	"time"
 
 	integration "fajurion.com/node-integration"
-	"fajurion.com/voice-node/util"
+	"fajurion.com/voice-node/caching"
 	"github.com/Fajurion/pipes"
+	"github.com/Fajurion/pipes/send"
 	"github.com/Fajurion/pipesfiber"
 	pipesfroutes "github.com/Fajurion/pipesfiber/routes"
 	"github.com/gofiber/fiber/v2"
@@ -38,12 +39,6 @@ func setupPipesFiber(router fiber.Router) {
 			if integration.Testing {
 				log.Println("Client disconnected:", client.ID)
 			}
-
-			util.PostRequest("/node/disconnect", map[string]interface{}{
-				"node":    integration.NODE_ID,
-				"token":   integration.NODE_TOKEN,
-				"session": client.Session,
-			})
 		},
 
 		// Handle enter network
@@ -52,6 +47,19 @@ func setupPipesFiber(router fiber.Router) {
 			if integration.Testing {
 				log.Println("Client connected:", client.ID)
 			}
+
+			// Generate new connection
+			connection := caching.EmptyConnection(client.Session, client.Conn.RemoteAddr().String())
+
+			client.SendEvent(pipes.Event{
+				Name:   "udp",
+				Sender: send.SenderSystem,
+				Data: map[string]interface{}{
+					"id":  connection.ClientID,
+					"key": connection.KeyBase64(),
+				},
+			})
+
 			return false
 		},
 

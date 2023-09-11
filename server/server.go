@@ -3,6 +3,7 @@ package server
 import (
 	"net"
 
+	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 )
 
@@ -31,28 +32,33 @@ func Listen(domain string, port int) {
 	util.Log.Println("UDP server started")
 
 	for {
-		offset, _, err := udpServ.ReadFrom(buffer) // Use client addr to rate limit in the future
+		offset, clientAddr, err := udpServ.ReadFrom(buffer) // Use client addr to rate limit in the future
 		if err != nil {
 			util.Log.Println("[udp] Error: ", err)
 			continue
 		}
 
-		//* protocol standard: PREFIX+CLIENT_ID:VOICE_DATA
-		// Prefix: 1 byte
+		//* protocol standard: CLIENT_ID:VOICE_DATA
 		// Client ID: 4 bytes
 		// Voice data: rest of the packet
-		msg := buffer[:offset]
+		go func(msg []byte) {
+			if len(msg) < 9 {
+				util.Log.Println("[udp] Error: Invalid message")
+				return
+			}
 
-		if len(msg) < 9 {
-			util.Log.Println("[udp] Error: Invalid message")
-			continue
-		}
+			// Check if client wants to send to node
+			clientID := string(msg[0:4])
+			ip := clientAddr.String() + ":" + clientID
+			connection, exists := caching.GetConnection(ip)
+			if !exists {
+				util.Log.Println("[udp] Error: Connection not found")
+				return
+			}
 
-		// Check if client wants to send to node
-		//endIndex := 6
-		//clientID := string(msg[1 : endIndex-1])
-		//connection, exists := caching.GetConnection(ip)
+			// Send voice data to room
+			SendToRoom(connection.Room, msg[4:offset])
 
-		// TODO: New logic
+		}(buffer[:offset])
 	}
 }

@@ -1,35 +1,38 @@
 module fajurion.com/voice-node
 
-go 1.20
+go 1.21
 
 require (
 	fajurion.com/node-integration v0.0.0-00010101000000-000000000000
-	github.com/Fajurion/pipes v0.0.0-20230616155010-fa960e4b653e
+	github.com/Fajurion/pipes v0.0.0-20230911153415-fbab2e9c739c
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/gofiber/fiber/v2 v2.47.0
+	github.com/gofiber/fiber/v2 v2.49.1
 )
 
 require nhooyr.io/websocket v1.8.7 // indirect
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/golang/glog v1.1.1 // indirect
+	github.com/golang/glog v1.1.2 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/tools v0.4.0 // indirect
 )
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/bytedance/sonic v1.9.2
-	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/bytedance/sonic v1.10.1
+	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/cornelk/hashmap v1.0.8 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
@@ -37,12 +40,14 @@ require (
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.48.0 // indirect
+	github.com/valyala/fasthttp v1.49.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/arch v0.4.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/arch v0.5.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 )
 
 replace fajurion.com/node-integration => ./node-integration
+
 replace github.com/Fajurion/pipes-fiber => ./pipes-fiber
+
 replace github.com/Fajurion/pipes => ./pipes
