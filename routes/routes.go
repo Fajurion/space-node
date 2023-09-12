@@ -59,6 +59,8 @@ func setupPipesFiber(router fiber.Router) {
 				},
 			})
 
+			// TODO: Register pipes adapter
+
 			return false
 		},
 

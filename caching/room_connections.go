@@ -10,6 +10,7 @@ import (
 // TODO: Store Room ID -> Connections
 type RoomConnections struct {
 	Connections []*net.UDPAddr
+	// TODO: Add adapters into here
 }
 
 // ! For setting please ALWAYS use cost 1
