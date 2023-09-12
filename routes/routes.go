@@ -48,7 +48,7 @@ func setupPipesFiber(router fiber.Router) {
 			}
 
 			// Generate new connection
-			connection := caching.EmptyConnection(client.Session, client.Conn.RemoteAddr().String())
+			connection := caching.EmptyConnection(client.ID, client.Session, client.Conn.RemoteAddr().String())
 
 			client.SendEvent(pipes.Event{
 				Name:   "udp",

@@ -24,7 +24,7 @@ func (c *Connection) KeyBase64() string {
 }
 
 // ! Always use cost 1
-var connectionsCache *ristretto.Cache
+var connectionsCache *ristretto.Cache // IP -> Connection
 
 const connectionTTL = 5 * time.Minute
 const connectionPacketTTL = 1 * time.Hour
@@ -43,7 +43,7 @@ func setupConnectionsCache() {
 	}
 }
 
-func EmptyConnection(room string, addr string) *Connection {
+func EmptyConnection(connId string, room string, addr string) *Connection {
 
 	// Generate encryption key
 	key, err := util.GenerateKey()
@@ -60,7 +60,9 @@ func EmptyConnection(room string, addr string) *Connection {
 		Key:      key,
 		Cipher:   nil,
 	}
-	connectionsCache.Set(conn.ClientID, conn, 1)
+	ip := addr + ":" + conn.ClientID
+	connectionsCache.SetWithTTL(ip, conn, 1, connectionTTL)
+	AddForDeletion(connId, ip)
 
 	return &conn
 }

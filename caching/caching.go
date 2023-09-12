@@ -10,6 +10,7 @@ func SetupMemory() {
 	setupRoomsCache()
 	setupRoomConnectionsCache()
 	setupConnectionsCache()
+	setupDeletionsCache()
 }
 
 func CloseCaches() {
@@ -17,6 +18,7 @@ func CloseCaches() {
 	roomsCache.Close()
 	roomConnectionsCache.Close()
 	connectionsCache.Close()
+	deletionsCache.Close()
 }
 
 const UserTTL = 30 * time.Second

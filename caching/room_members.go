@@ -7,10 +7,15 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
+type RoomConnection struct {
+	ID         string
+	Connection *net.UDPAddr
+	Adapter    string
+}
+
 // TODO: Store Room ID -> Connections
 type RoomConnections struct {
-	Connections []*net.UDPAddr
-	// TODO: Add adapters into here
+	Connections []RoomConnection
 }
 
 // ! For setting please ALWAYS use cost 1

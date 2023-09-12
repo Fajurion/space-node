@@ -32,18 +32,17 @@ func setupRoomsCache() {
 }
 
 type Room struct {
-	Mutex   *sync.Mutex
-	ID      string   // ID acts as a sort of token for the room (anyone with the ID can join)
-	Data    string   // Encrypted room data
-	Start   int64    // Timestamp of when the room was created
-	Members []string // Encrypted member IDs
+	Mutex *sync.Mutex
+	ID    string // Account ID of the owner
+	Data  string // Encrypted room data
+	Start int64  // Timestamp of when the room was created
 }
 
 const RoomTTL = time.Minute * 5
 
 // CreateRoom creates a room in the cache
 func CreateRoom(roomId string, data string) {
-	roomsCache.SetWithTTL(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli(), []string{}}, 1, RoomTTL)
+	roomsCache.SetWithTTL(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli()}, 1, RoomTTL)
 	roomsCache.Wait()
 }
 
@@ -61,9 +60,10 @@ func JoinRoom(roomID string, member string) bool {
 		return false
 	}
 
-	room.Members = append(room.Members, member)
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+	// TODO: Add members
 
+	// Refresh room
+	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
 	roomsCache.Wait()
 	room.Mutex.Unlock()
 
@@ -84,15 +84,10 @@ func LeaveRoom(roomID string, member string) bool {
 		return false
 	}
 
-	for i, m := range room.Members {
-		if m == member {
-			room.Members = append(room.Members[:i], room.Members[i+1:]...)
-			break
-		}
-	}
+	// TODO: Delete member
 
+	// Refresh room
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-
 	roomsCache.Wait()
 	room.Mutex.Unlock()
 
@@ -114,7 +109,6 @@ func RefreshRoom(roomID string) bool {
 	}
 
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-
 	roomsCache.Wait()
 	room.Mutex.Unlock()
 
