@@ -16,7 +16,6 @@ import (
 func SetupRoutes(router fiber.Router) {
 	router.Post("/socketless", socketlessEvent)
 	router.Post("/ping", ping)
-	router.Post("/create", createRoom)
 
 	// Auth
 	router.Post("/auth/initalize", initializeConnection)

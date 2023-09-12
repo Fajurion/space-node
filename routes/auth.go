@@ -2,6 +2,7 @@ package routes
 
 import (
 	integration "fajurion.com/node-integration"
+	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipesfiber"
 	"github.com/gofiber/fiber/v2"
@@ -40,6 +41,7 @@ func initializeConnection(c *fiber.Ctx) error {
 		Session: req.Session, // Again, this would be the room ID
 		Data:    nil,
 	})
+	caching.CreateRoom(req.Session, "")
 
 	return c.JSON(fiber.Map{
 		"success": true,

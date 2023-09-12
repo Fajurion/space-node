@@ -42,11 +42,9 @@ type Room struct {
 const RoomTTL = time.Minute * 5
 
 // CreateRoom creates a room in the cache
-func CreateRoom(data string) string {
-	roomId := util.GenerateToken(16)
+func CreateRoom(roomId string, data string) {
 	roomsCache.SetWithTTL(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli(), []string{}}, 1, RoomTTL)
 	roomsCache.Wait()
-	return roomId
 }
 
 // JoinRoom adds a member to a room in the cache
@@ -136,4 +134,26 @@ func GetRoom(roomID string) (Room, bool) {
 	}
 
 	return object.(Room), true
+}
+
+func SetRoomData(roomID string, data string) bool {
+
+	room, valid := GetRoom(roomID)
+	if !valid {
+		return false
+	}
+	room.Mutex.Lock()
+
+	room, valid = GetRoom(roomID)
+	if !valid {
+		return false
+	}
+
+	room.Data = data
+	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+
+	roomsCache.Wait()
+	room.Mutex.Unlock()
+
+	return true
 }

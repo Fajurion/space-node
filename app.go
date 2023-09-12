@@ -73,7 +73,7 @@ func main() {
 
 	// Create testing room
 	if integration.Testing {
-		caching.CreateRoom("test")
+		caching.CreateRoom("id", "test")
 
 		strconv.Atoi(os.Getenv("TESTING_AMOUNT"))
 		// TODO: New testing method

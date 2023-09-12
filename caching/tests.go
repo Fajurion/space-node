@@ -11,7 +11,7 @@ import (
 func TestRooms(t *testing.T) {
 
 	// Test caching
-	CreateRoom("test")
+	CreateRoom("id", "test")
 	for i := 0; i < 10; i++ {
 		go func() {
 			valid := JoinRoom("test", util.GenerateToken(5))
