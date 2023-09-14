@@ -18,6 +18,7 @@ func SetupRoutes(router fiber.Router) {
 
 	// Auth
 	router.Post("/auth/initialize", initializeConnection)
+	router.Post("/leave", leaveRoom)
 
 	setupPipesFiber(router)
 }
