@@ -8,11 +8,12 @@ func SendToRoom(room string, bytes []byte) error {
 
 	// TODO: Maybe add some sort of verification?
 
-	caching.GetAllConnections(room)
-	for _, connection := range caching.GetAllConnections(room) {
-		_, err := udpServ.WriteToUDP(bytes, connection)
-		if err != nil {
-			return err
+	for _, connection := range *caching.GetAllConnections(room) {
+		if connection.Connected {
+			_, err := udpServ.WriteToUDP(bytes, connection.Connection)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

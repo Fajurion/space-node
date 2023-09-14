@@ -2,7 +2,6 @@ package routes
 
 import (
 	integration "fajurion.com/node-integration"
-	"fajurion.com/voice-node/caching"
 	"github.com/Fajurion/pipesfiber"
 	"github.com/gofiber/fiber/v2"
 )
@@ -11,6 +10,7 @@ type LeaveRoomRequest struct {
 	Connection string `json:"connection"`
 }
 
+// Route: /leave_room
 func leaveRoom(c *fiber.Ctx) error {
 
 	var req LeaveRoomRequest
@@ -20,11 +20,6 @@ func leaveRoom(c *fiber.Ctx) error {
 
 	connections := pipesfiber.GetSessions(req.Connection)
 	if len(connections) == 0 {
-		return integration.InvalidRequest(c)
-	}
-
-	_, valid := caching.GetIP(connections[0])
-	if !valid {
 		return integration.InvalidRequest(c)
 	}
 

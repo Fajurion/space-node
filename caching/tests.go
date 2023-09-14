@@ -14,7 +14,7 @@ func TestRooms(t *testing.T) {
 	CreateRoom("id", "test")
 	for i := 0; i < 10; i++ {
 		go func() {
-			valid := JoinRoom("test", util.GenerateToken(5))
+			valid := JoinRoom("test", util.GenerateToken(5), "")
 			if !valid {
 				t.Error("Room not found")
 			}

@@ -56,6 +56,10 @@ func Listen(domain string, port int) {
 				return
 			}
 
+			if connection.UDP == nil {
+
+			}
+
 			// Send voice data to room
 			SendToRoom(connection.Room, msg[4:offset])
 

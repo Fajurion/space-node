@@ -13,7 +13,6 @@ import (
 type Connection struct {
 	Room     string
 	ClientID string
-	IP       string
 	UDP      *net.UDPAddr
 	Key      []byte
 	Cipher   cipher.Block
@@ -43,7 +42,23 @@ func setupConnectionsCache() {
 	}
 }
 
-func EmptyConnection(connId string, room string, addr string) *Connection {
+func SetupUDP(connId string, addr string, udp *net.UDPAddr) bool {
+
+	// Get connection
+	ip := addr + ":" + connId
+	conn, valid := GetConnection(ip)
+	if !valid {
+		return false
+	}
+
+	// Set UDP
+	conn.UDP = udp
+	connectionsCache.SetWithTTL(ip, conn, 1, connectionTTL)
+
+	return true
+}
+
+func EmptyConnection(connId string, room string, addr string) Connection {
 
 	// Generate encryption key
 	key, err := util.GenerateKey()
@@ -55,19 +70,17 @@ func EmptyConnection(connId string, room string, addr string) *Connection {
 	conn := Connection{
 		Room:     room,
 		ClientID: util.GenerateToken(4),
-		IP:       addr,
 		UDP:      nil,
 		Key:      key,
 		Cipher:   nil,
 	}
 	ip := addr + ":" + conn.ClientID
 	connectionsCache.SetWithTTL(ip, conn, 1, connectionTTL)
-	AddForDeletion(connId, ip)
 
-	return &conn
+	return conn
 }
 
-func GetConnection(ip string) (*Connection, bool) {
+func GetConnection(ip string) (Connection, bool) {
 	conn, valid := connectionsCache.Get(ip)
-	return conn.(*Connection), valid
+	return conn.(Connection), valid
 }

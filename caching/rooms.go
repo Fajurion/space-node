@@ -47,7 +47,7 @@ func CreateRoom(roomId string, data string) {
 }
 
 // JoinRoom adds a member to a room in the cache
-func JoinRoom(roomID string, member string) bool {
+func JoinRoom(roomID string, connectionId string) bool {
 
 	room, valid := GetRoom(roomID)
 	if !valid {
@@ -57,10 +57,22 @@ func JoinRoom(roomID string, member string) bool {
 
 	room, valid = GetRoom(roomID)
 	if !valid {
+		room.Mutex.Unlock()
 		return false
 	}
 
-	// TODO: Add members
+	obj, valid := roomConnectionsCache.Get(roomID)
+	if !valid {
+		room.Mutex.Unlock()
+		return false
+	}
+	connections := obj.(*RoomConnections)
+	(*connections)[connectionId] = RoomConnection{
+		Connected:  false,
+		Connection: nil,
+		Adapter:    connectionId,
+		Data:       "",
+	}
 
 	// Refresh room
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
