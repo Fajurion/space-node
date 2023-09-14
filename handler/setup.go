@@ -22,7 +22,7 @@ func setupUDP(message wshandler.Message) {
 	}
 
 	// Generate new connection
-	connection := caching.EmptyConnection(message.Client.ID, message.Client.Session, message.Client.Conn.RemoteAddr().String())
+	connection := caching.EmptyConnection(message.Client.ID, message.Client.Session)
 
 	message.Client.SendEvent(pipes.Event{
 		Name:   "udp",

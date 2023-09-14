@@ -38,30 +38,43 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		//* protocol standard: CLIENT_ID:VOICE_DATA
-		// Client ID: 4 bytes
+		//* protocol standard: CLIENT_ID:HASH:VOICE_DATA
+		// Client ID: 20 bytes
+		// Verifier: variable length (till next ':')
 		// Voice data: rest of the packet
 		go func(msg []byte) {
-			if len(msg) < 9 {
+			if len(msg) < 52 {
 				util.Log.Println("[udp] Error: Invalid message")
 				return
 			}
 
-			// Check if client wants to send to node
-			clientID := string(msg[0:4])
-			ip := clientAddr.String() + ":" + clientID
-			connection, exists := caching.GetConnection(ip)
-			if !exists {
-				util.Log.Println("[udp] Error: Connection not found")
+			// Verify connection
+			clientID := string(msg[0:20])
+			beginning := 21
+			end := beginning + 32 // Must be longer than 32 cause hash is 32 and encrypted = longer
+			found := false
+			for ; end < beginning+32+150; /* to prevent overflow */ end++ {
+				if msg[end] == ':' {
+					found = true
+					break
+				}
+			}
+			if !found {
+				util.Log.Println("[udp] Error: Invalid message")
+				return
+			}
+			verifier := msg[beginning:end]
+			voiceData := msg[end+1 : offset]
+			hashedData := util.Hash(voiceData)
+
+			conn, valid := caching.VerifyUDP(clientID, clientAddr, hashedData, verifier)
+			if !valid {
+				util.Log.Println("[udp] Error: Could not verify connection")
 				return
 			}
 
-			if connection.UDP == nil {
-
-			}
-
 			// Send voice data to room
-			SendToRoom(connection.Room, msg[4:offset])
+			SendToRoom(conn.Room, voiceData)
 
 		}(buffer[:offset])
 	}

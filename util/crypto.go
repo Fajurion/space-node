@@ -3,6 +3,7 @@ package util
 import (
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"io"
 )
@@ -62,4 +63,14 @@ func GenerateKey() ([]byte, error) {
 	}
 
 	return key, nil
+}
+
+// Hashes using SHA256
+func Hash(bytes []byte) []byte {
+	hashed := sha256.Sum256(bytes)
+	return hashed[:]
+}
+
+func CompareHash(h1, h2 []byte) bool {
+	return string(h1) == string(h2)
 }

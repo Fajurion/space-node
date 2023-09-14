@@ -1,6 +1,7 @@
 package caching
 
 import (
+	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
 	"net"
@@ -11,6 +12,7 @@ import (
 )
 
 type Connection struct {
+	ID       string
 	Room     string
 	ClientID string
 	UDP      *net.UDPAddr
@@ -23,7 +25,7 @@ func (c *Connection) KeyBase64() string {
 }
 
 // ! Always use cost 1
-var connectionsCache *ristretto.Cache // IP -> Connection
+var connectionsCache *ristretto.Cache // ClientID -> Connection
 
 const connectionTTL = 5 * time.Minute
 const connectionPacketTTL = 1 * time.Hour
@@ -42,23 +44,43 @@ func setupConnectionsCache() {
 	}
 }
 
-func SetupUDP(connId string, addr string, udp *net.UDPAddr) bool {
+// packetHash = encrypted hash included in the packet by the client
+// hash = computed hash of the packet
+func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (Connection, bool) {
 
 	// Get connection
-	ip := addr + ":" + connId
-	conn, valid := GetConnection(ip)
+	conn, valid := GetConnection(clientId)
 	if !valid {
-		return false
+		return Connection{}, false
+	}
+
+	// Verify hash
+	decrypted, err := util.DecryptAES(conn.Cipher, packetHash)
+	if err != nil {
+		return Connection{}, false
+	}
+	if !util.CompareHash(decrypted, hash) {
+		return Connection{}, false
 	}
 
 	// Set UDP
-	conn.UDP = udp
-	connectionsCache.SetWithTTL(ip, conn, 1, connectionPacketTTL)
+	if conn.UDP != nil {
+		udp, err := net.ResolveUDPAddr("udp", udp.String())
+		if err != nil {
+			return Connection{}, false
+		}
 
-	return true
+		conn.UDP = udp
+		valid := EnterUDP(conn.Room, conn.ID, udp)
+		if !valid {
+			return Connection{}, false
+		}
+		connectionsCache.SetWithTTL(clientId, conn, 1, connectionPacketTTL)
+	}
+	return conn, true
 }
 
-func EmptyConnection(connId string, room string, addr string) Connection {
+func EmptyConnection(connId string, room string) Connection {
 
 	// Generate encryption key
 	key, err := util.GenerateKey()
@@ -66,16 +88,22 @@ func EmptyConnection(connId string, room string, addr string) Connection {
 		panic(err)
 	}
 
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
 	// Store in cache
+	clientId := util.GenerateToken(20)
 	conn := Connection{
+		ID:       connId,
 		Room:     room,
-		ClientID: util.GenerateToken(4),
+		ClientID: clientId,
 		UDP:      nil,
 		Key:      key,
-		Cipher:   nil,
+		Cipher:   block,
 	}
-	ip := addr + ":" + conn.ClientID
-	connectionsCache.SetWithTTL(ip, conn, 1, connectionTTL)
+	connectionsCache.SetWithTTL(clientId, conn, 1, connectionTTL)
 
 	return conn
 }
