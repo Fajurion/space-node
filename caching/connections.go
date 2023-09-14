@@ -53,7 +53,7 @@ func SetupUDP(connId string, addr string, udp *net.UDPAddr) bool {
 
 	// Set UDP
 	conn.UDP = udp
-	connectionsCache.SetWithTTL(ip, conn, 1, connectionTTL)
+	connectionsCache.SetWithTTL(ip, conn, 1, connectionPacketTTL)
 
 	return true
 }
