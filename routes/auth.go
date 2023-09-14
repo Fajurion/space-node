@@ -19,6 +19,7 @@ type intializeRequest struct {
 	End       int64  `json:"end"`
 }
 
+// Route: /auth/initialize
 func initializeConnection(c *fiber.Ctx) error {
 
 	// Parse the request
