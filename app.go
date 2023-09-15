@@ -75,7 +75,25 @@ func main() {
 	if integration.Testing {
 		caching.CreateRoom("id", "test")
 
-		strconv.Atoi(os.Getenv("TESTING_AMOUNT"))
+		amount, err := strconv.Atoi(os.Getenv("TESTING_AMOUNT"))
+		if err != nil {
+			util.Log.Println("Error: Couldn't parse testing amount")
+			return
+		}
+
+		for i := 0; i < amount; i++ {
+			clientId := util.GenerateToken(5)
+			connection := caching.EmptyConnection(clientId, "id")
+			valid := caching.JoinRoom("id", connection.ClientID)
+			if !valid {
+				util.Log.Println("Error: Couldn't join room")
+				return
+			}
+			util.Log.Println("--- TESTING CLIENT ---")
+			util.Log.Println("Client ID: " + connection.ClientID)
+			util.Log.Println("Client Key: " + connection.KeyBase64())
+			util.Log.Println("----------------------")
+		}
 		// TODO: New testing method
 	}
 

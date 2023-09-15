@@ -58,7 +58,7 @@ func EnterUDP(roomID string, connectionId string, addr *net.UDPAddr) bool {
 		room.Mutex.Unlock()
 		return false
 	}
-	connections := *obj.(*RoomConnections)
+	connections := obj.(RoomConnections)
 	conn := connections[connectionId]
 	if conn.Connected {
 		room.Mutex.Unlock()
@@ -99,7 +99,7 @@ func SetMemberData(roomID string, connectionId string, data string) bool {
 		room.Mutex.Unlock()
 		return false
 	}
-	connections := *obj.(*RoomConnections)
+	connections := obj.(RoomConnections)
 	if connections[connectionId].Connected {
 		room.Mutex.Unlock()
 		return false
@@ -120,13 +120,13 @@ func SetMemberData(roomID string, connectionId string, data string) bool {
 }
 
 // Get all connections from a room
-func GetAllConnections(room string) *RoomConnections {
+func GetAllConnections(room string) (RoomConnections, bool) {
 
 	connections, found := roomConnectionsCache.Get(room)
 
 	if !found {
-		return nil
+		return nil, false
 	}
 
-	return connections.(*RoomConnections)
+	return connections.(RoomConnections), true
 }

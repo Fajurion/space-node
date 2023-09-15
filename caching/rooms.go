@@ -43,6 +43,7 @@ const RoomTTL = time.Minute * 5
 // CreateRoom creates a room in the cache
 func CreateRoom(roomId string, data string) {
 	roomsCache.SetWithTTL(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli()}, 1, RoomTTL)
+	roomConnectionsCache.SetWithTTL(roomId, RoomConnections{}, 1, RoomTTL)
 	roomsCache.Wait()
 }
 
@@ -66,8 +67,8 @@ func JoinRoom(roomID string, connectionId string) bool {
 		room.Mutex.Unlock()
 		return false
 	}
-	connections := obj.(*RoomConnections)
-	(*connections)[connectionId] = RoomConnection{
+	connections := obj.(RoomConnections)
+	connections[connectionId] = RoomConnection{
 		Connected:  false,
 		Connection: nil,
 		Adapter:    connectionId,
@@ -120,7 +121,13 @@ func RefreshRoom(roomID string) bool {
 		return false
 	}
 
+	connections, valid := GetAllConnections(roomID)
+	if !valid {
+		return false
+	}
+
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
 	roomsCache.Wait()
 	room.Mutex.Unlock()
 
