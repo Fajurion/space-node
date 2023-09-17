@@ -81,6 +81,7 @@ func main() {
 			return
 		}
 
+		roomKey := generateBase64Key() // Is generated on the client in production
 		for i := 0; i < amount; i++ {
 			clientId := util.GenerateToken(5)
 			connection := caching.EmptyConnection(clientId, "id")
@@ -90,8 +91,7 @@ func main() {
 				return
 			}
 			util.Log.Println("--- TESTING CLIENT ---")
-			util.Log.Println("Client ID: " + connection.ClientID)
-			util.Log.Println("Client Key: " + connection.KeyBase64())
+			util.Log.Println(connection.ClientID + ":" + connection.KeyBase64() + ":" + roomKey)
 			util.Log.Println("----------------------")
 		}
 		// TODO: New testing method
@@ -168,4 +168,9 @@ func parseNodes(res map[string]interface{}) bool {
 	}
 
 	return false
+}
+
+func generateBase64Key() string {
+	bytes, _ := util.GenerateKey()
+	return base64.StdEncoding.EncodeToString(bytes)
 }
