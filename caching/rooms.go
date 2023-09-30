@@ -21,7 +21,7 @@ func setupRoomsCache() {
 		OnEvict: func(item *ristretto.Item) {
 			room := item.Value.(Room)
 
-			util.Log.Println("[udp]", room.ID, "was deleted")
+			util.Log.Println("[cache] room", room.ID, "was deleted")
 		},
 	})
 

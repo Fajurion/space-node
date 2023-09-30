@@ -28,7 +28,7 @@ func setupRoomConnectionsCache() {
 		MaxCost:     1 << 30, // maximum cost of cache is 1GB
 		BufferItems: 64,      // Some random number, check docs
 		OnEvict: func(item *ristretto.Item) {
-			util.Log.Println("[udp]", item.Key, "'s connections were deleted")
+			util.Log.Println("[cache] room", item.Key, "'s connections were deleted")
 		},
 	})
 
@@ -72,8 +72,8 @@ func EnterUDP(roomID string, connectionId string, addr *net.UDPAddr) bool {
 	}
 
 	// Refresh room
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-	roomsCache.Wait()
+	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Wait()
 	room.Mutex.Unlock()
 
 	return true
@@ -112,8 +112,38 @@ func SetMemberData(roomID string, connectionId string, data string) bool {
 	}
 
 	// Refresh room
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-	roomsCache.Wait()
+	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Wait()
+	room.Mutex.Unlock()
+
+	return true
+}
+
+func RemoveMember(roomID string, connectionId string) bool {
+
+	room, valid := GetRoom(roomID)
+	if !valid {
+		return false
+	}
+	room.Mutex.Lock()
+
+	room, valid = GetRoom(roomID)
+	if !valid {
+		room.Mutex.Unlock()
+		return false
+	}
+
+	obj, valid := roomConnectionsCache.Get(roomID)
+	if !valid {
+		room.Mutex.Unlock()
+		return false
+	}
+	connections := obj.(RoomConnections)
+	delete(connections, connectionId)
+
+	// Refresh room
+	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Wait()
 	room.Mutex.Unlock()
 
 	return true

@@ -112,3 +112,7 @@ func GetConnection(ip string) (Connection, bool) {
 	conn, valid := connectionsCache.Get(ip)
 	return conn.(Connection), valid
 }
+
+func DeleteConnection(ip string) {
+	connectionsCache.Del(ip)
+}

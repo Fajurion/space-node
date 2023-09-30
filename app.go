@@ -12,9 +12,12 @@ import (
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipes/connection"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 
 	integration "fajurion.com/node-integration" // Propietary package (might be replaced with an open-source alternative in the future)
 	"fajurion.com/voice-node/caching"
+	"fajurion.com/voice-node/handler"
 	"fajurion.com/voice-node/routes"
 	"fajurion.com/voice-node/server"
 	"fajurion.com/voice-node/util"
@@ -28,6 +31,8 @@ func main() {
 	caching.SetupMemory()
 
 	app := fiber.New()
+	app.Use(cors.New())
+	app.Use(logger.New())
 	app.Route("/", routes.SetupRoutes)
 
 	if !integration.Setup() {
@@ -45,6 +50,7 @@ func main() {
 
 	pipes.SetupSocketless("http://" + domain + "/socketless")
 	pipes.SetupWS("ws://" + domain + "/adoption")
+	handler.Initialize()
 
 	// Report online status
 	res := integration.SetOnline()
@@ -52,11 +58,13 @@ func main() {
 
 	// Check if test mode or production
 	args := strings.Split(domain, ":")
-	port, err := strconv.Atoi(args[1])
+	var err error
+	util.Port, err = strconv.Atoi(args[1])
 	if err != nil {
 		util.Log.Println("Error: Couldn't parse port of current node")
 		return
 	}
+	util.UDPPort = util.Port + 1
 
 	// Test encryption
 	first := testEncryption()
@@ -94,7 +102,6 @@ func main() {
 			util.Log.Println(connection.ClientID + ":" + connection.KeyBase64() + ":" + roomKey)
 			util.Log.Println("----------------------")
 		}
-		// TODO: New testing method
 	}
 
 	// Close caches on exit
@@ -112,8 +119,8 @@ func main() {
 	})
 
 	// Start on localhost
-	go server.Listen(os.Getenv("LISTEN"), port+1)
-	app.Listen(fmt.Sprintf("%s:%d", os.Getenv("LISTEN"), port))
+	go server.Listen(os.Getenv("LISTEN"), util.UDPPort)
+	app.Listen(fmt.Sprintf("%s:%d", os.Getenv("LISTEN"), util.Port))
 }
 
 // This function is used to test if the encryption is working properly and always different

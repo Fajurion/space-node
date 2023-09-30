@@ -2,8 +2,7 @@ package handler
 
 import (
 	"fajurion.com/voice-node/caching"
-	"github.com/Fajurion/pipes"
-	"github.com/Fajurion/pipes/send"
+	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipesfiber/wshandler"
 )
 
@@ -24,14 +23,15 @@ func setupUDP(message wshandler.Message) {
 	// Generate new connection
 	connection := caching.EmptyConnection(message.Client.ID, message.Client.Session)
 
-	message.Client.SendEvent(pipes.Event{
-		Name:   "udp",
-		Sender: send.SenderSystem,
-		Data: map[string]interface{}{
-			"id":  connection.ClientID,
-			"key": connection.KeyBase64(),
-		},
-	})
+	if !SendRoomData(message.Client.Session) {
+		wshandler.ErrorResponse(message, "server.error")
+		return
+	}
 
-	wshandler.SuccessResponse(message)
+	wshandler.NormalResponse(message, map[string]interface{}{
+		"success": true,
+		"id":      connection.ClientID,
+		"key":     connection.KeyBase64(),
+		"port":    util.UDPPort,
+	})
 }

@@ -25,11 +25,11 @@ func initializeConnection(c *fiber.Ctx) error {
 	// Parse the request
 	var req intializeRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return integration.InvalidRequest(c)
 	}
 
 	if req.Sender == SenderUser {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return integration.InvalidRequest(c)
 	}
 
 	if integration.NODE_TOKEN != req.NodeToken {
@@ -42,7 +42,14 @@ func initializeConnection(c *fiber.Ctx) error {
 		Session: req.Session, // Again, this would be the room ID
 		Data:    nil,
 	})
-	caching.CreateRoom(req.Session, "")
+
+	_, valid := caching.GetRoom(req.Session)
+	if !valid {
+		util.Log.Println("Creating new room for", req.Account, "("+req.Session+")")
+		caching.CreateRoom(req.Session, "")
+	} else {
+		util.Log.Println("Room already exists for", req.Account, "("+req.Session+")")
+	}
 
 	return c.JSON(fiber.Map{
 		"success": true,

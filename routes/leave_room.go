@@ -7,10 +7,10 @@ import (
 )
 
 type LeaveRoomRequest struct {
-	Connection string `json:"connection"`
+	Connection string `json:"conn"`
 }
 
-// Route: /leave_room
+// Route: /leave
 func leaveRoom(c *fiber.Ctx) error {
 
 	var req LeaveRoomRequest
@@ -20,8 +20,17 @@ func leaveRoom(c *fiber.Ctx) error {
 
 	connections := pipesfiber.GetSessions(req.Connection)
 	if len(connections) == 0 {
-		return integration.InvalidRequest(c)
+		return integration.SuccessfulRequest(c)
 	}
 
-	return nil
+	for _, conn := range connections {
+		connection, valid := pipesfiber.Get(req.Connection, conn)
+		if !valid {
+			continue
+		}
+
+		connection.Conn.Close()
+	}
+
+	return integration.SuccessfulRequest(c)
 }

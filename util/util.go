@@ -13,7 +13,9 @@ import (
 	"github.com/bytedance/sonic"
 )
 
-var Log = log.New(log.Writer(), "voice-node ", log.Flags())
+var Port int = 0
+var UDPPort int = 0
+var Log = log.New(log.Writer(), "space-node ", log.Flags())
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
