@@ -44,7 +44,7 @@ func Listen(domain string, port int) {
 		// Voice data: rest of the packet
 		go func(msg []byte) {
 			if len(msg) < 52 {
-				util.Log.Println("[udp] Error: Invalid message")
+				util.Log.Println("[udp] Error: Invalid message length")
 				return
 			}
 
@@ -53,17 +53,17 @@ func Listen(domain string, port int) {
 			beginning := 21
 			end := beginning + 32 // Must be longer than 32 cause hash is 32 and encrypted = longer
 			found := false
-			for ; end < beginning+32+150; /* to prevent overflow */ end++ {
+			for ; end < min(beginning+100, len(msg)); /* to prevent overflow */ end++ {
 				if msg[end] == ':' {
 					found = true
 					break
 				}
 			}
 			if !found {
-				util.Log.Println("[udp] Error: Invalid message")
+				util.Log.Println("[udp] Error: Invalid message format")
 				return
 			}
-			verifier := msg[beginning:end]
+			verifier := msg[beginning-1 : end]
 			voiceData := msg[end+1 : offset]
 			hashedData := util.Hash(voiceData)
 

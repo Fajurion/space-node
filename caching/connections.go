@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
+	"fmt"
 	"net"
 	"time"
 
@@ -25,7 +26,8 @@ func (c *Connection) KeyBase64() string {
 }
 
 // ! Always use cost 1
-var connectionsCache *ristretto.Cache // ClientID -> Connection
+var connectionsCache *ristretto.Cache // ConnectionID -> Connection
+var clientIDCache *ristretto.Cache    // ClientID -> ConnectionID
 
 const connectionTTL = 5 * time.Minute
 const connectionPacketTTL = 1 * time.Hour
@@ -37,6 +39,25 @@ func setupConnectionsCache() {
 		NumCounters: 10_000_000, // 1 million expected connections
 		MaxCost:     1 << 30,    // 1 GB
 		BufferItems: 64,
+
+		OnEvict: func(item *ristretto.Item) {
+			clientIDCache.Del(item.Value.(Connection).ClientID)
+			util.Log.Println("[cache] connection", item.Key, "was deleted")
+		},
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	clientIDCache, err = ristretto.NewCache(&ristretto.Config{
+		NumCounters: 10_000_000, // 1 million expected connections
+		MaxCost:     1 << 30,    // 1 GB
+		BufferItems: 64,
+
+		OnEvict: func(item *ristretto.Item) {
+			util.Log.Println("[cache] cached client id of connection", item.Value, "was deleted")
+		},
 	})
 
 	if err != nil {
@@ -49,17 +70,41 @@ func setupConnectionsCache() {
 func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (Connection, bool) {
 
 	// Get connection
-	conn, valid := GetConnection(clientId)
+	connectionId, valid := clientIDCache.Get(clientId)
 	if !valid {
 		return Connection{}, false
 	}
 
-	// Verify hash
-	decrypted, err := util.DecryptAES(conn.Cipher, packetHash)
-	if err != nil {
+	obj, valid := connectionsCache.Get(connectionId.(string))
+	if !valid {
 		return Connection{}, false
 	}
+	conn := obj.(Connection)
+
+	// Verify hash
+	cipher, err := aes.NewCipher(conn.Key)
+	if err != nil {
+		util.Log.Println("Error: Couldn't create cipher:", err)
+		return Connection{}, false
+	}
+
+	fmt.Println(string(packetHash))
+	bytes, err := base64.StdEncoding.DecodeString(string(packetHash))
+	if err != nil {
+		util.Log.Println("Error: Couldn't decode hash:", err)
+		return Connection{}, false
+	}
+
+	decrypted, err := util.DecryptAES(cipher, bytes)
+	if err != nil {
+		util.Log.Println("Error: Couldn't decrypt hash:", err)
+		return Connection{}, false
+	}
+
 	if !util.CompareHash(decrypted, hash) {
+		util.Log.Println("Error: Hashes don't match")
+		util.Log.Println("Expected:", decrypted)
+		util.Log.Println("Got:", hash)
 		return Connection{}, false
 	}
 
@@ -103,13 +148,17 @@ func EmptyConnection(connId string, room string) Connection {
 		Key:      key,
 		Cipher:   block,
 	}
-	connectionsCache.SetWithTTL(clientId, conn, 1, connectionTTL)
+	connectionsCache.SetWithTTL(connId, conn, 1, connectionTTL)
+	clientIDCache.Set(clientId, connId, 1)
 
 	return conn
 }
 
 func GetConnection(ip string) (Connection, bool) {
 	conn, valid := connectionsCache.Get(ip)
+	if !valid {
+		return Connection{}, false
+	}
 	return conn.(Connection), valid
 }
 
