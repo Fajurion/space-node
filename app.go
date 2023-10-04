@@ -89,7 +89,6 @@ func main() {
 			return
 		}
 
-		roomKey := generateBase64Key() // Is generated on the client in production
 		for i := 0; i < amount; i++ {
 			clientId := util.GenerateToken(5)
 			connection := caching.EmptyConnection(clientId, "id")
@@ -99,7 +98,7 @@ func main() {
 				return
 			}
 			util.Log.Println("--- TESTING CLIENT ---")
-			util.Log.Println(connection.ClientID + ":" + connection.KeyBase64() + ":" + roomKey)
+			util.Log.Println(connection.ClientID + ":" + connection.KeyBase64())
 			util.Log.Println("----------------------")
 		}
 	}

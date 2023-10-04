@@ -6,17 +6,16 @@ import (
 	"fajurion.com/voice-node/caching"
 )
 
-func SendToRoom(room string, bytes []byte) error {
-
-	// TODO: Maybe add some sort of verification?
+func SendToRoom(room string, prefix []byte, bytes []byte) error {
 
 	connections, valid := caching.GetAllConnections(room)
 	if !valid {
 		return errors.New("room not found")
 	}
+
 	for _, connection := range connections {
 		if connection.Connected {
-			_, err := udpServ.WriteToUDP(bytes, connection.Connection)
+			_, err := udpServ.WriteToUDP(append(prefix, bytes...), connection.Connection)
 			if err != nil {
 				return err
 			}

@@ -11,6 +11,7 @@ type RoomConnection struct {
 	Connected  bool
 	Connection *net.UDPAddr
 	Adapter    string
+	ClientID   string
 	Data       string
 }
 
@@ -39,7 +40,7 @@ func setupRoomConnectionsCache() {
 }
 
 // JoinRoom adds a member to a room in the cache
-func EnterUDP(roomID string, connectionId string, addr *net.UDPAddr) bool {
+func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDPAddr) bool {
 
 	room, valid := GetRoom(roomID)
 	if !valid {
@@ -61,12 +62,14 @@ func EnterUDP(roomID string, connectionId string, addr *net.UDPAddr) bool {
 	connections := obj.(RoomConnections)
 	conn := connections[connectionId]
 	if conn.Connected {
+		util.Log.Println("Error: Connection already exists")
 		room.Mutex.Unlock()
 		return false
 	}
 	connections[connectionId] = RoomConnection{
 		Connected:  true,
 		Connection: addr,
+		ClientID:   "",
 		Data:       conn.Data,
 		Adapter:    connectionId,
 	}
@@ -108,6 +111,7 @@ func SetMemberData(roomID string, connectionId string, data string) bool {
 		Connected:  false,
 		Connection: nil,
 		Adapter:    connectionId,
+		ClientID:   "",
 		Data:       data,
 	}
 

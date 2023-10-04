@@ -76,6 +76,8 @@ func JoinRoom(roomID string, connectionId string) bool {
 	}
 
 	// Refresh room
+	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Wait()
 	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
 	roomsCache.Wait()
 	room.Mutex.Unlock()

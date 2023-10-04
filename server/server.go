@@ -39,7 +39,7 @@ func Listen(domain string, port int) {
 		}
 
 		//* protocol standard: CLIENT_ID:HASH:VOICE_DATA
-		// Client ID: 20 bytes
+		// Client ID: 10 bytes
 		// Verifier: variable length (till next ':')
 		// Voice data: rest of the packet
 		go func(msg []byte) {
@@ -49,8 +49,8 @@ func Listen(domain string, port int) {
 			}
 
 			// Verify connection
-			clientID := string(msg[0:20])
-			beginning := 21
+			clientID := string(msg[0:10])
+			beginning := 11
 			end := beginning + 32 // Must be longer than 32 cause hash is 32 and encrypted = longer
 			found := false
 			for ; end < min(beginning+100, len(msg)); /* to prevent overflow */ end++ {
@@ -74,7 +74,12 @@ func Listen(domain string, port int) {
 			}
 
 			// Send voice data to room
-			SendToRoom(conn.Room, voiceData)
+			prefixedId, err := util.EncryptAES(conn.Cipher, []byte(clientID))
+			if err != nil {
+				util.Log.Println("[udp] Error: Could not encrypt client id")
+				return
+			}
+			SendToRoom(conn.Room, prefixedId, voiceData)
 
 		}(buffer[:offset])
 	}

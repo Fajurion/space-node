@@ -4,7 +4,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
-	"fmt"
 	"net"
 	"time"
 
@@ -88,7 +87,6 @@ func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (C
 		return Connection{}, false
 	}
 
-	fmt.Println(string(packetHash))
 	bytes, err := base64.StdEncoding.DecodeString(string(packetHash))
 	if err != nil {
 		util.Log.Println("Error: Couldn't decode hash:", err)
@@ -109,18 +107,22 @@ func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (C
 	}
 
 	// Set UDP
-	if conn.UDP != nil {
+	if conn.UDP == nil {
 		udp, err := net.ResolveUDPAddr("udp", udp.String())
 		if err != nil {
+			util.Log.Println("Error: Couldn't resolve udp address:", err)
 			return Connection{}, false
 		}
 
 		conn.UDP = udp
-		valid := EnterUDP(conn.Room, conn.ID, udp)
+		valid := EnterUDP(conn.Room, conn.ID, clientId, udp)
 		if !valid {
+			util.Log.Println("Error: Couldn't enter udp")
 			return Connection{}, false
 		}
-		connectionsCache.SetWithTTL(clientId, conn, 1, connectionPacketTTL)
+		connectionsCache.SetWithTTL(connectionId, conn, 1, connectionPacketTTL)
+		connectionsCache.Wait()
+		util.Log.Println("Success: UDP set")
 	}
 	return conn, true
 }
@@ -139,7 +141,7 @@ func EmptyConnection(connId string, room string) Connection {
 	}
 
 	// Store in cache
-	clientId := util.GenerateToken(20)
+	clientId := util.GenerateToken(10)
 	conn := Connection{
 		ID:       connId,
 		Room:     room,
