@@ -85,30 +85,6 @@ func JoinRoom(roomID string, connectionId string) bool {
 	return true
 }
 
-// LeaveRoom removes a member from a room in the cache
-func LeaveRoom(roomID string, member string) bool {
-
-	room, valid := GetRoom(roomID)
-	if !valid {
-		return false
-	}
-	room.Mutex.Lock()
-
-	room, valid = GetRoom(roomID)
-	if !valid {
-		return false
-	}
-
-	// TODO: Delete member
-
-	// Refresh room
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-	roomsCache.Wait()
-	room.Mutex.Unlock()
-
-	return true
-}
-
 // RefreshRoom refreshes a room in the cache
 func RefreshRoom(roomID string) bool {
 

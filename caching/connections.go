@@ -115,7 +115,7 @@ func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (C
 		}
 
 		conn.UDP = udp
-		valid := EnterUDP(conn.Room, conn.ID, clientId, udp)
+		valid := EnterUDP(conn.Room, conn.ID, clientId, udp, &conn.Key)
 		if !valid {
 			util.Log.Println("Error: Couldn't enter udp")
 			return Connection{}, false

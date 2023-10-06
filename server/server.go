@@ -74,12 +74,7 @@ func Listen(domain string, port int) {
 			}
 
 			// Send voice data to room
-			prefixedId, err := util.EncryptAES(conn.Cipher, []byte(clientID))
-			if err != nil {
-				util.Log.Println("[udp] Error: Could not encrypt client id")
-				return
-			}
-			SendToRoom(conn.Room, prefixedId, voiceData)
+			SendToRoom(conn.Room, []byte(clientID), voiceData)
 
 		}(buffer[:offset])
 	}

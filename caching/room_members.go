@@ -11,11 +11,12 @@ type RoomConnection struct {
 	Connected  bool
 	Connection *net.UDPAddr
 	Adapter    string
+	Key        *[]byte
 	ClientID   string
 	Data       string
 }
 
-// TODO: Store Room ID -> Connections
+// Member ID -> Connections
 type RoomConnections map[string]RoomConnection
 
 // ! For setting please ALWAYS use cost 1
@@ -40,7 +41,7 @@ func setupRoomConnectionsCache() {
 }
 
 // JoinRoom adds a member to a room in the cache
-func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDPAddr) bool {
+func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDPAddr, key *[]byte) bool {
 
 	room, valid := GetRoom(roomID)
 	if !valid {
@@ -72,6 +73,7 @@ func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDP
 		ClientID:   "",
 		Data:       conn.Data,
 		Adapter:    connectionId,
+		Key:        key,
 	}
 
 	// Refresh room
