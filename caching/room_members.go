@@ -70,14 +70,14 @@ func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDP
 	connections[connectionId] = RoomConnection{
 		Connected:  true,
 		Connection: addr,
-		ClientID:   "",
+		ClientID:   clientId,
 		Data:       conn.Data,
 		Adapter:    connectionId,
 		Key:        key,
 	}
 
 	// Refresh room
-	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Set(roomID, connections, 1)
 	roomConnectionsCache.Wait()
 	room.Mutex.Unlock()
 
@@ -85,7 +85,7 @@ func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDP
 }
 
 // Sets the member data
-func SetMemberData(roomID string, connectionId string, data string) bool {
+func SetMemberData(roomID string, connectionId string, clientId string, data string) bool {
 
 	room, valid := GetRoom(roomID)
 	if !valid {
@@ -113,12 +113,12 @@ func SetMemberData(roomID string, connectionId string, data string) bool {
 		Connected:  false,
 		Connection: nil,
 		Adapter:    connectionId,
-		ClientID:   "",
+		ClientID:   clientId,
 		Data:       data,
 	}
 
 	// Refresh room
-	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Set(roomID, connections, 1)
 	roomConnectionsCache.Wait()
 	room.Mutex.Unlock()
 
@@ -147,8 +147,13 @@ func RemoveMember(roomID string, connectionId string) bool {
 	connections := obj.(RoomConnections)
 	delete(connections, connectionId)
 
+	if len(connections) == 0 {
+		DeleteRoom(roomID)
+		return true
+	}
+
 	// Refresh room
-	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Set(roomID, connections, 1)
 	roomConnectionsCache.Wait()
 	room.Mutex.Unlock()
 

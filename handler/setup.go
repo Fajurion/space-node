@@ -13,15 +13,16 @@ func setupUDP(message wshandler.Message) {
 		wshandler.ErrorResponse(message, "invalid")
 		return
 	}
-
-	// Insert data
-	if !caching.SetMemberData(message.Client.Session, message.Client.ID, message.Data["data"].(string)) {
-		wshandler.ErrorResponse(message, "invalid")
-		return
-	}
+	data := message.Data["data"].(string)
 
 	// Generate new connection
 	connection := caching.EmptyConnection(message.Client.ID, message.Client.Session)
+
+	// Insert data
+	if !caching.SetMemberData(message.Client.Session, message.Client.ID, connection.ClientID, data) {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
 
 	if !SendRoomData(message.Client.Session) {
 		wshandler.ErrorResponse(message, "server.error")

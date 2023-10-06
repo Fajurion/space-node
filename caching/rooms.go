@@ -38,12 +38,10 @@ type Room struct {
 	Start int64  // Timestamp of when the room was created
 }
 
-const RoomTTL = time.Minute * 5
-
 // CreateRoom creates a room in the cache
 func CreateRoom(roomId string, data string) {
-	roomsCache.SetWithTTL(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli()}, 1, RoomTTL)
-	roomConnectionsCache.SetWithTTL(roomId, RoomConnections{}, 1, RoomTTL)
+	roomsCache.Set(roomId, Room{&sync.Mutex{}, roomId, data, time.Now().UnixMilli()}, 1)
+	roomConnectionsCache.Set(roomId, RoomConnections{}, 1)
 	roomsCache.Wait()
 }
 
@@ -76,36 +74,9 @@ func JoinRoom(roomID string, connectionId string) bool {
 	}
 
 	// Refresh room
-	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomConnectionsCache.Set(roomID, connections, 1)
 	roomConnectionsCache.Wait()
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-	roomsCache.Wait()
-	room.Mutex.Unlock()
-
-	return true
-}
-
-// RefreshRoom refreshes a room in the cache
-func RefreshRoom(roomID string) bool {
-
-	room, valid := GetRoom(roomID)
-	if !valid {
-		return false
-	}
-	room.Mutex.Lock()
-
-	room, valid = GetRoom(roomID)
-	if !valid {
-		return false
-	}
-
-	connections, valid := GetAllConnections(roomID)
-	if !valid {
-		return false
-	}
-
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
-	roomConnectionsCache.SetWithTTL(roomID, connections, 1, RoomTTL)
+	roomsCache.Set(roomID, room, 1)
 	roomsCache.Wait()
 	room.Mutex.Unlock()
 
@@ -115,6 +86,7 @@ func RefreshRoom(roomID string) bool {
 // DeleteRoom deletes a room from the cache
 func DeleteRoom(roomID string) {
 	roomsCache.Del(roomID)
+	roomConnectionsCache.Del(roomID)
 }
 
 // GetRoom gets a room from the cache
@@ -141,7 +113,7 @@ func SetRoomData(roomID string, data string) bool {
 	}
 
 	room.Data = data
-	roomsCache.SetWithTTL(roomID, room, 1, RoomTTL)
+	roomsCache.Set(roomID, room, 1)
 
 	roomsCache.Wait()
 	room.Mutex.Unlock()

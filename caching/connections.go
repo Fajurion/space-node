@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"net"
-	"time"
 
 	"fajurion.com/voice-node/util"
 	"github.com/dgraph-io/ristretto"
@@ -28,9 +27,6 @@ func (c *Connection) KeyBase64() string {
 var connectionsCache *ristretto.Cache // ConnectionID -> Connection
 var clientIDCache *ristretto.Cache    // ClientID -> ConnectionID
 
-const connectionTTL = 5 * time.Minute
-const connectionPacketTTL = 1 * time.Hour
-
 func setupConnectionsCache() {
 
 	var err error
@@ -38,11 +34,6 @@ func setupConnectionsCache() {
 		NumCounters: 10_000_000, // 1 million expected connections
 		MaxCost:     1 << 30,    // 1 GB
 		BufferItems: 64,
-
-		OnEvict: func(item *ristretto.Item) {
-			clientIDCache.Del(item.Value.(Connection).ClientID)
-			util.Log.Println("[cache] connection", item.Key, "was deleted")
-		},
 	})
 
 	if err != nil {
@@ -120,7 +111,7 @@ func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (C
 			util.Log.Println("Error: Couldn't enter udp")
 			return Connection{}, false
 		}
-		connectionsCache.SetWithTTL(connectionId, conn, 1, connectionPacketTTL)
+		connectionsCache.Set(connectionId, conn, 1)
 		connectionsCache.Wait()
 		util.Log.Println("Success: UDP set")
 	}
@@ -150,20 +141,27 @@ func EmptyConnection(connId string, room string) Connection {
 		Key:      key,
 		Cipher:   block,
 	}
-	connectionsCache.SetWithTTL(connId, conn, 1, connectionTTL)
+	connectionsCache.Set(connId, conn, 1)
 	clientIDCache.Set(clientId, connId, 1)
 
 	return conn
 }
 
-func GetConnection(ip string) (Connection, bool) {
-	conn, valid := connectionsCache.Get(ip)
+func GetConnection(connId string) (Connection, bool) {
+	conn, valid := connectionsCache.Get(connId)
 	if !valid {
 		return Connection{}, false
 	}
 	return conn.(Connection), valid
 }
 
-func DeleteConnection(ip string) {
-	connectionsCache.Del(ip)
+// TODO: Create a test for all deletion functions
+func DeleteConnection(connId string) {
+	obj, valid := connectionsCache.Get(connId)
+	if !valid {
+		return
+	}
+	connection := obj.(Connection)
+	connectionsCache.Del(connId)
+	clientIDCache.Del(connection.ClientID)
 }

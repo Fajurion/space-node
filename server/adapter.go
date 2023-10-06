@@ -8,15 +8,16 @@ import (
 	"fajurion.com/voice-node/util"
 )
 
-func SendToRoom(room string, prefix []byte, bytes []byte) error {
+func SendToRoom(room string, clientId string, bytes []byte) error {
 
 	connections, valid := caching.GetAllConnections(room)
 	if !valid {
 		return errors.New("room not found")
 	}
 
+	clientIdBytes := []byte(clientId)
 	for _, connection := range connections {
-		if connection.Connected {
+		if connection.Connected && connection.ClientID != clientId {
 
 			// Create new cipher
 			cipher, err := aes.NewCipher(*connection.Key)
@@ -25,7 +26,7 @@ func SendToRoom(room string, prefix []byte, bytes []byte) error {
 				return err
 			}
 
-			encryptedPrefix, err := util.EncryptAES(cipher, prefix)
+			encryptedPrefix, err := util.EncryptAES(cipher, clientIdBytes)
 			if err != nil {
 				util.Log.Println("[udp] Error: Could not encrypt client id")
 				return err

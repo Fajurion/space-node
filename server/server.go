@@ -74,7 +74,7 @@ func Listen(domain string, port int) {
 			}
 
 			// Send voice data to room
-			SendToRoom(conn.Room, []byte(clientID), voiceData)
+			SendToRoom(conn.Room, clientID, voiceData)
 
 		}(buffer[:offset])
 	}

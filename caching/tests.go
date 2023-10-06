@@ -40,15 +40,6 @@ func TestRooms(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 5; i++ {
-		go func() {
-			valid := RefreshRoom("id")
-			if !valid {
-				t.Error("Room not found")
-			}
-		}()
-	}
-
 	time.Sleep(time.Millisecond * 500)
 	connections, valid := GetAllConnections("id")
 	if !valid {
