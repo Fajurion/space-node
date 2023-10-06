@@ -10,3 +10,7 @@ pipes-fiber/*
 
 .env
 app-linux
+
+# Build files
+app
+app.exe
