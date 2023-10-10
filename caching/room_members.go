@@ -14,9 +14,21 @@ type RoomConnection struct {
 	Key        *[]byte
 	ClientID   string
 	Data       string
+
+	//* Client status
+	Muted    bool
+	Deafened bool
 }
 
-// Member ID -> Connections
+// TODO: Implement as standard
+type ReturnableMember struct {
+	ConnectionId string `json:"connectionId"`
+	Data         string `json:"data"`
+	Muted        bool   `json:"muted"`
+	Deafened     bool   `json:"deafened"`
+}
+
+// Member (Connection) ID -> Connections
 type RoomConnections map[string]RoomConnection
 
 // ! For setting please ALWAYS use cost 1
@@ -170,4 +182,29 @@ func GetAllConnections(room string) (RoomConnections, bool) {
 	}
 
 	return connections.(RoomConnections), true
+}
+
+// Save changes in a room
+func SaveConnections(roomId string, connections RoomConnections) bool {
+
+	room, valid := GetRoom(roomId)
+	if !valid {
+		return false
+	}
+	room.Mutex.Lock()
+
+	room, valid = GetRoom(roomId)
+	if !valid {
+		room.Mutex.Unlock()
+		return false
+	}
+
+	// Refresh room
+	roomConnectionsCache.Set(roomId, connections, 1)
+	roomConnectionsCache.Wait()
+	roomsCache.Set(roomId, room, 1)
+	roomsCache.Wait()
+	room.Mutex.Unlock()
+
+	return true
 }

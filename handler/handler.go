@@ -7,4 +7,5 @@ func Initialize() {
 
 	wshandler.Routes["set_data"] = setData
 	wshandler.Routes["setup"] = setupUDP
+	wshandler.Routes["update"] = update
 }
