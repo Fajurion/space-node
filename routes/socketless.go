@@ -18,12 +18,12 @@ func socketlessEvent(c *fiber.Ctx) error {
 	// Parse request
 	var rq socketlessRq
 	if err := c.BodyParser(&rq); err != nil {
-		return integration.InvalidRequest(c)
+		return integration.InvalidRequest(c, "invalid request body, err: "+err.Error())
 	}
 
 	// Check token
 	if rq.Token != pipes.CurrentNode.Token {
-		return integration.InvalidRequest(c)
+		return integration.InvalidRequest(c, "invalid token")
 	}
 
 	receive.HandleMessage("ws", rq.Message)

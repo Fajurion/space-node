@@ -15,7 +15,7 @@ func leaveRoom(c *fiber.Ctx) error {
 
 	var req LeaveRoomRequest
 	if err := c.BodyParser(&req); err != nil {
-		return integration.InvalidRequest(c)
+		return integration.InvalidRequest(c, "invalid request body, err: "+err.Error())
 	}
 
 	connections := pipesfiber.GetSessions(req.Connection)

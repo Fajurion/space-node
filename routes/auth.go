@@ -25,11 +25,11 @@ func initializeConnection(c *fiber.Ctx) error {
 	// Parse the request
 	var req intializeRequest
 	if err := c.BodyParser(&req); err != nil {
-		return integration.InvalidRequest(c)
+		return integration.InvalidRequest(c, "invalid request body, err: "+err.Error())
 	}
 
 	if req.Sender == SenderUser {
-		return integration.InvalidRequest(c)
+		return integration.InvalidRequest(c, "sender must be 1 (node)")
 	}
 
 	if integration.NODE_TOKEN != req.NodeToken {

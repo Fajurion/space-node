@@ -15,14 +15,14 @@ func roomInfo(c *fiber.Ctx) error {
 
 	// Parse request
 	var req roomInfoRequest
-	if c.BodyParser(&req) != nil {
-		return integration.InvalidRequest(c)
+	if err := c.BodyParser(&req); err != nil {
+		return integration.InvalidRequest(c, "invalid request body, err: "+err.Error())
 	}
 
 	room, validRoom := caching.GetRoom(req.Room)
 	members, valid := caching.GetAllConnections(req.Room)
 	if !valid || !validRoom {
-		return integration.InvalidRequest(c)
+		return integration.InvalidRequest(c, "invalid room")
 	}
 
 	returnableMembers := make([]string, len(members))
