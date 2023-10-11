@@ -20,12 +20,19 @@ type RoomConnection struct {
 	Deafened bool
 }
 
+func (r *RoomConnection) ToReturnableMember() ReturnableMember {
+	return ReturnableMember{
+		ID:       r.Data + ":" + r.ClientID,
+		Muted:    r.Muted,
+		Deafened: r.Deafened,
+	}
+}
+
 // TODO: Implement as standard
 type ReturnableMember struct {
-	ConnectionId string `json:"connectionId"`
-	Data         string `json:"data"`
-	Muted        bool   `json:"muted"`
-	Deafened     bool   `json:"deafened"`
+	ID       string `json:"id"` // Syntax: data:clientID
+	Muted    bool   `json:"muted"`
+	Deafened bool   `json:"deafened"`
 }
 
 // Member (Connection) ID -> Connections
@@ -182,6 +189,24 @@ func GetAllConnections(room string) (RoomConnections, bool) {
 	}
 
 	return connections.(RoomConnections), true
+}
+
+// Get all adapters from a room
+func GetAllAdapters(room string) ([]string, bool) {
+
+	connections, valid := GetAllConnections(room)
+	if !valid {
+		return nil, false
+	}
+
+	adapters := make([]string, len(connections))
+	i := 0
+	for key := range connections {
+		adapters[i] = key
+		i++
+	}
+
+	return adapters, true
 }
 
 // Save changes in a room

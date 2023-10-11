@@ -37,11 +37,12 @@ func SendRoomData(id string) bool {
 		return false
 	}
 
+	// Get all members
 	adapters := make([]string, len(members))
-	returnableMembers := make([]string, len(members))
+	returnableMembers := make([]caching.ReturnableMember, len(members))
 	i := 0
 	for _, member := range members {
-		returnableMembers[i] = member.Data + ":" + member.ClientID
+		returnableMembers[i] = member.ToReturnableMember()
 		adapters[i] = member.Adapter
 		i++
 	}

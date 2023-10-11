@@ -155,14 +155,6 @@ func GetConnection(connId string) (Connection, bool) {
 	return conn.(Connection), valid
 }
 
-func ClientIDToConnectionID(clientId string) (string, bool) {
-	connId, valid := clientIDCache.Get(clientId)
-	if !valid {
-		return "", false
-	}
-	return connId.(string), valid
-}
-
 // TODO: Create a test for all deletion functions
 func DeleteConnection(connId string) {
 	obj, valid := connectionsCache.Get(connId)
