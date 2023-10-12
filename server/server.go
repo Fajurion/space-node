@@ -73,6 +73,11 @@ func Listen(domain string, port int) {
 				return
 			}
 
+			if len(voiceData) <= 5 {
+				util.Log.Println("[udp] Success: Init packet received")
+				return
+			}
+
 			// Send voice data to room
 			SendToRoom(conn.Room, clientID, voiceData)
 

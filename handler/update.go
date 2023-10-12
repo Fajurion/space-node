@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"log"
+
 	"fajurion.com/voice-node/caching"
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipes/send"
@@ -27,9 +29,12 @@ func update(message wshandler.Message) {
 		return
 	}
 
-	client := connections[connection.ClientID]
+	client := connections[message.Client.ID]
+	client.ClientID = connection.ClientID
 	client.Muted = message.Data["muted"].(bool)
 	client.Deafened = message.Data["deafened"].(bool)
+	log.Println("UPDATED CLIENT", client.Data, client.ClientID, connection.ID)
+	connections[message.Client.ID] = client
 	caching.SaveConnections(message.Client.Session, connections)
 
 	// Send to all

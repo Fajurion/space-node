@@ -31,10 +31,25 @@ func setData(message wshandler.Message) {
 }
 
 func SendRoomData(id string) bool {
+	adapters, event, valid := GetRoomData(id, "room_data")
+	if !valid {
+		return false
+	}
+
+	// Send to all
+	err := send.Pipe(send.ProtocolWS, pipes.Message{
+		Channel: pipes.BroadcastChannel(adapters),
+		Local:   true,
+		Event:   event,
+	})
+	return err == nil
+}
+
+func GetRoomData(id string, eventName string) ([]string, pipes.Event, bool) {
 	room, validRoom := caching.GetRoom(id)
 	members, valid := caching.GetAllConnections(id)
 	if !valid || !validRoom {
-		return false
+		return []string{}, pipes.Event{}, false
 	}
 
 	// Get all members
@@ -48,17 +63,12 @@ func SendRoomData(id string) bool {
 	}
 
 	// Send to all
-	err := send.Pipe(send.ProtocolWS, pipes.Message{
-		Channel: pipes.BroadcastChannel(adapters),
-		Local:   true,
-		Event: pipes.Event{
-			Name: "room_data",
-			Data: map[string]interface{}{
-				"start":   room.Start,
-				"room":    room.Data,
-				"members": returnableMembers,
-			},
+	return adapters, pipes.Event{
+		Name: eventName,
+		Data: map[string]interface{}{
+			"start":   room.Start,
+			"room":    room.Data,
+			"members": returnableMembers,
 		},
-	})
-	return err == nil
+	}, true
 }

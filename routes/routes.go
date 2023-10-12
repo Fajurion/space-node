@@ -9,7 +9,6 @@ import (
 	"fajurion.com/voice-node/handler"
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipes/adapter"
-	"github.com/Fajurion/pipes/send"
 	"github.com/Fajurion/pipesfiber"
 	pipesfroutes "github.com/Fajurion/pipesfiber/routes"
 	"github.com/gofiber/fiber/v2"
@@ -58,31 +57,6 @@ func setupPipesFiber(router fiber.Router) {
 			if integration.Testing {
 				log.Println("Client connected:", client.ID)
 			}
-
-			// Send room info
-			room, validRoom := caching.GetRoom(client.Session)
-			members, valid := caching.GetAllConnections(client.Session)
-			if !valid || !validRoom {
-				return false
-			}
-
-			returnableMembers := make([]string, len(members))
-			i := 0
-			for _, member := range members {
-				returnableMembers[i] = member.Data
-				i++
-			}
-
-			client.SendEvent(pipes.Event{
-				Name:   "room_info",
-				Sender: send.SenderSystem,
-				Data: map[string]interface{}{
-					"start":   room.Start,
-					"room":    room.Data,
-					"members": returnableMembers,
-				},
-			})
-
 			return false
 		},
 

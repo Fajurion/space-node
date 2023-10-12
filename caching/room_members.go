@@ -227,8 +227,6 @@ func SaveConnections(roomId string, connections RoomConnections) bool {
 	// Refresh room
 	roomConnectionsCache.Set(roomId, connections, 1)
 	roomConnectionsCache.Wait()
-	roomsCache.Set(roomId, room, 1)
-	roomsCache.Wait()
 	room.Mutex.Unlock()
 
 	return true
