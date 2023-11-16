@@ -1,9 +1,13 @@
 package handler
 
-import "github.com/Fajurion/pipesfiber/wshandler"
+import (
+	"fajurion.com/voice-node/handler/games"
+	"github.com/Fajurion/pipesfiber/wshandler"
+)
 
 func Initialize() {
 	wshandler.Initialize()
+	games.SetupActions()
 
 	wshandler.Routes["set_data"] = setData
 	wshandler.Routes["setup"] = setupUDP
