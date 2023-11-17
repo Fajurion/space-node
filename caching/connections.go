@@ -11,12 +11,13 @@ import (
 )
 
 type Connection struct {
-	ID       string
-	Room     string
-	ClientID string
-	UDP      *net.UDPAddr
-	Key      []byte
-	Cipher   cipher.Block
+	ID             string
+	Room           string
+	ClientID       string
+	CurrentSession string
+	UDP            *net.UDPAddr
+	Key            []byte
+	Cipher         cipher.Block
 }
 
 func (c *Connection) KeyBase64() string {
@@ -164,4 +165,16 @@ func DeleteConnection(connId string) {
 	connection := obj.(Connection)
 	connectionsCache.Del(connId)
 	clientIDCache.Del(connection.ClientID)
+}
+
+func JoinSession(connId string, sessionId string) bool {
+	obj, valid := connectionsCache.Get(connId)
+	if !valid {
+		return false
+	}
+	connection := obj.(Connection)
+	connection.CurrentSession = sessionId
+	connectionsCache.Set(connId, connection, 1)
+	connectionsCache.Wait()
+	return true
 }

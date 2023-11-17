@@ -8,12 +8,13 @@ import (
 )
 
 type RoomConnection struct {
-	Connected  bool
-	Connection *net.UDPAddr
-	Adapter    string
-	Key        *[]byte
-	ClientID   string
-	Data       string
+	Connected      bool
+	Connection     *net.UDPAddr
+	Adapter        string
+	Key            *[]byte
+	ClientID       string
+	CurrentSession string
+	Data           string
 
 	//* Client status
 	Muted    bool
@@ -87,12 +88,13 @@ func EnterUDP(roomID string, connectionId string, clientId string, addr *net.UDP
 		return false
 	}
 	connections[connectionId] = RoomConnection{
-		Connected:  true,
-		Connection: addr,
-		ClientID:   clientId,
-		Data:       conn.Data,
-		Adapter:    connectionId,
-		Key:        key,
+		Connected:      true,
+		Connection:     addr,
+		ClientID:       clientId,
+		Data:           conn.Data,
+		CurrentSession: "",
+		Adapter:        connectionId,
+		Key:            key,
 	}
 
 	// Refresh room
@@ -129,11 +131,12 @@ func SetMemberData(roomID string, connectionId string, clientId string, data str
 		return false
 	}
 	connections[connectionId] = RoomConnection{
-		Connected:  false,
-		Connection: nil,
-		Adapter:    connectionId,
-		ClientID:   clientId,
-		Data:       data,
+		Connected:      false,
+		Connection:     nil,
+		Adapter:        connectionId,
+		CurrentSession: "",
+		ClientID:       clientId,
+		Data:           data,
 	}
 
 	// Refresh room

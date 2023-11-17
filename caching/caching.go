@@ -1,8 +1,6 @@
 package caching
 
 import (
-	"time"
-
 	"fajurion.com/voice-node/util"
 )
 
@@ -10,6 +8,7 @@ func SetupMemory() {
 	setupRoomsCache()
 	setupRoomConnectionsCache()
 	setupConnectionsCache()
+	setupSessionsCache()
 }
 
 func CloseCaches() {
@@ -17,6 +16,5 @@ func CloseCaches() {
 	roomsCache.Close()
 	roomConnectionsCache.Close()
 	connectionsCache.Close()
+	sessionsCache.Close()
 }
-
-const UserTTL = 30 * time.Second
