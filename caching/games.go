@@ -16,14 +16,15 @@ type EventContext struct {
 	Client  *pipesfiber.Client
 	Name    string
 	Session string
-	Data    map[string]interface{}
+	Data    interface{}
 }
 
 type GameSession struct {
-	Id           string
-	Game         string
-	Members      []string // Client ids
-	EventChannel *chan EventContext
+	Id            string
+	Game          string
+	ConnectionIds []string
+	ClientIds     []string
+	EventChannel  *chan EventContext
 }
 
 // ! For setting please ALWAYS use cost 1
@@ -67,21 +68,21 @@ var games = map[string]Game{
 	},
 }
 
-func OpenGameSession(roomId string, gameId string) (string, bool) {
+func OpenGameSession(connId string, clientId string, roomId string, gameId string) (GameSession, bool) {
 
 	game, ok := games[gameId]
 	if !ok {
-		return "", false
+		return GameSession{}, false
 	}
 	room, valid := GetRoom(roomId)
 	if !valid {
-		return "", false
+		return GameSession{}, false
 	}
 	room.Mutex.Lock()
 
 	room, valid = GetRoom(roomId)
 	if !valid {
-		return "", false
+		return GameSession{}, false
 	}
 
 	// Create game session
@@ -96,9 +97,11 @@ func OpenGameSession(roomId string, gameId string) (string, bool) {
 
 	channel := game.LaunchFunc()
 	session := GameSession{
-		Id:           sessionId,
-		Game:         gameId,
-		EventChannel: &channel,
+		Id:            sessionId,
+		Game:          gameId,
+		EventChannel:  &channel,
+		ConnectionIds: []string{connId},
+		ClientIds:     []string{clientId},
 	}
 
 	room.Sessions = append(room.Sessions, session.Id)
@@ -108,7 +111,7 @@ func OpenGameSession(roomId string, gameId string) (string, bool) {
 	roomsCache.Wait()
 	room.Mutex.Unlock()
 
-	return sessionId, true
+	return session, true
 }
 
 func ForwardGameEvent(sessionId string, event EventContext) bool {

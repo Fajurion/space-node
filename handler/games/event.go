@@ -29,7 +29,7 @@ func gameEvent(message wshandler.Message) {
 		Client:  message.Client,
 		Name:    message.Data["name"].(string),
 		Session: sessionId,
-		Data:    message.Data["data"].(map[string]interface{}),
+		Data:    message.Data["data"],
 	})
 	if !valid {
 		wshandler.ErrorResponse(message, "invalid")
