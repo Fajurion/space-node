@@ -1,7 +1,8 @@
-package games
+package games_actions
 
 import (
 	"fajurion.com/voice-node/caching"
+	"fajurion.com/voice-node/caching/games"
 	"github.com/Fajurion/pipesfiber/wshandler"
 )
 
@@ -25,7 +26,7 @@ func gameEvent(message wshandler.Message) {
 		return
 	}
 
-	valid = caching.ForwardGameEvent(sessionId, caching.EventContext{
+	valid = caching.ForwardGameEvent(sessionId, games.EventContext{
 		Client:  message.Client,
 		Name:    message.Data["name"].(string),
 		Session: sessionId,

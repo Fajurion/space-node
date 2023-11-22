@@ -1,34 +1,29 @@
 package caching
 
 import (
+	"fajurion.com/voice-node/caching/games"
+	"fajurion.com/voice-node/caching/games/wordgrid"
 	"fajurion.com/voice-node/util"
-	"github.com/Fajurion/pipesfiber"
 	"github.com/dgraph-io/ristretto"
 )
-
-type Game struct {
-	Id         string
-	Session    string
-	LaunchFunc func() chan EventContext
-}
-
-type EventContext struct {
-	Client  *pipesfiber.Client
-	Name    string
-	Session string
-	Data    interface{}
-}
 
 type GameSession struct {
 	Id            string
 	Game          string
 	ConnectionIds []string
 	ClientIds     []string
-	EventChannel  *chan EventContext
+	EventChannel  *chan games.EventContext
 }
 
 // ! For setting please ALWAYS use cost 1
 var sessionsCache *ristretto.Cache
+
+var gamesMap = map[string]games.Game{
+	"grid": {
+		Id:         "grid",
+		LaunchFunc: wordgrid.LaunchWordGrid,
+	},
+}
 
 func setupSessionsCache() {
 	var err error
@@ -48,29 +43,24 @@ func setupSessionsCache() {
 	}
 }
 
-var games = map[string]Game{
-	"chess": {
-		Id:      "chess",
-		Session: "chess",
-		LaunchFunc: func() chan EventContext {
-			channel := make(chan EventContext)
-			go func() {
-				for {
-					event := <-channel
-					if event.Name == "close" {
-						break
-					}
-					util.Log.Println(event)
-				}
-			}()
-			return channel
-		},
-	},
+func CloseSession(sessionId string) bool {
+
+	session, valid := sessionsCache.Get(sessionId)
+	if !valid {
+		return false
+	}
+
+	*session.(GameSession).EventChannel <- games.EventContext{
+		Name: "close",
+	}
+
+	sessionsCache.Del(sessionId)
+	return true
 }
 
 func OpenGameSession(connId string, clientId string, roomId string, gameId string) (GameSession, bool) {
 
-	game, ok := games[gameId]
+	game, ok := gamesMap[gameId]
 	if !ok {
 		return GameSession{}, false
 	}
@@ -114,7 +104,7 @@ func OpenGameSession(connId string, clientId string, roomId string, gameId strin
 	return session, true
 }
 
-func ForwardGameEvent(sessionId string, event EventContext) bool {
+func ForwardGameEvent(sessionId string, event games.EventContext) bool {
 
 	session, valid := sessionsCache.Get(sessionId)
 	if !valid {
@@ -124,4 +114,12 @@ func ForwardGameEvent(sessionId string, event EventContext) bool {
 	*session.(GameSession).EventChannel <- event
 
 	return true
+}
+
+func GetSession(sessionId string) (GameSession, bool) {
+	session, valid := sessionsCache.Get(sessionId)
+	if !valid {
+		return GameSession{}, false
+	}
+	return session.(GameSession), valid
 }

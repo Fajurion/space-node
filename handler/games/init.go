@@ -1,9 +1,7 @@
-package games
+package games_actions
 
 import (
 	"fajurion.com/voice-node/caching"
-	"github.com/Fajurion/pipes"
-	"github.com/Fajurion/pipes/send"
 	"github.com/Fajurion/pipesfiber/wshandler"
 )
 
@@ -22,13 +20,24 @@ func initGame(message wshandler.Message) {
 		return
 	}
 
+	// Close current session
+	currentSession, valid := caching.GetSession(conn.CurrentSession)
+	if valid && len(currentSession.ClientIds) == 1 {
+		caching.CloseSession(currentSession.Id)
+		valid := sendSessionClose(message.Client.Session, currentSession.Id)
+		if !valid {
+			wshandler.ErrorResponse(message, "server.error")
+			return
+		}
+	}
+
 	session, valid := caching.OpenGameSession(message.Client.ID, conn.ClientID, message.Client.Session, gameId)
 	if !valid {
 		wshandler.ErrorResponse(message, "invalid")
 		return
 	}
 
-	caching.JoinSession(session.Id, message.Client.ID)
+	caching.JoinSession(message.Client.ID, session.Id)
 
 	// Send new session to all clients
 	clients, valid := caching.GetAllConnections(message.Client.Session)
@@ -52,20 +61,5 @@ func initGame(message wshandler.Message) {
 	wshandler.NormalResponse(message, map[string]interface{}{
 		"success": true,
 		"session": session.Id,
-	})
-}
-
-func sendUpdateSession(adapters []string, session caching.GameSession) error {
-	return send.Pipe(send.ProtocolWS, pipes.Message{
-		Channel: pipes.BroadcastChannel(adapters),
-		Local:   true,
-		Event: pipes.Event{
-			Name: "session_update",
-			Data: map[string]interface{}{
-				"session": session.Id,
-				"game":    session.Game,
-				"members": session.ClientIds,
-			},
-		},
 	})
 }
