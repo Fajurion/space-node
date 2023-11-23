@@ -61,5 +61,7 @@ func initGame(message wshandler.Message) {
 	wshandler.NormalResponse(message, map[string]interface{}{
 		"success": true,
 		"session": session.Id,
+		"min":     caching.GamesMap[session.Game].MinPlayers,
+		"max":     caching.GamesMap[session.Game].MaxPlayers,
 	})
 }

@@ -27,10 +27,9 @@ func gameEvent(message wshandler.Message) {
 	}
 
 	valid = caching.ForwardGameEvent(sessionId, games.EventContext{
-		Client:  message.Client,
-		Name:    message.Data["name"].(string),
-		Session: sessionId,
-		Data:    message.Data["data"],
+		Client: message.Client,
+		Name:   message.Data["name"].(string),
+		Data:   message.Data["data"],
 	})
 	if !valid {
 		wshandler.ErrorResponse(message, "invalid")

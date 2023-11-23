@@ -17,6 +17,7 @@ import (
 
 	integration "fajurion.com/node-integration" // Propietary package (might be replaced with an open-source alternative in the future)
 	"fajurion.com/voice-node/caching"
+	"fajurion.com/voice-node/caching/games/launcher"
 	"fajurion.com/voice-node/handler"
 	"fajurion.com/voice-node/routes"
 	"fajurion.com/voice-node/server"
@@ -39,6 +40,7 @@ func main() {
 		return
 	}
 
+	launcher.InitGames()
 	pipes.SetupCurrent(fmt.Sprintf("%d", integration.NODE_ID), integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
 
