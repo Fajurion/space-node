@@ -34,7 +34,6 @@ func main() {
 	app := fiber.New()
 	app.Use(cors.New())
 	app.Use(logger.New())
-	app.Route("/", routes.SetupRoutes)
 
 	if !integration.Setup() {
 		return
@@ -44,9 +43,12 @@ func main() {
 	pipes.SetupCurrent(fmt.Sprintf("%d", integration.NODE_ID), integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
 
-	// Query current node
+	// Query current node AND JWT TOKEN
 	_, _, currentApp, domain := integration.GetCurrent()
 	APP_ID = currentApp
+
+	// Setup routes (called here because of the jwt secret)
+	app.Route("/", routes.SetupRoutes)
 
 	util.Log.Printf("Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
 

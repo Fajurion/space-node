@@ -4,7 +4,6 @@ import (
 	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
-	"github.com/Fajurion/pipesfiber"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -28,7 +27,7 @@ func initializeConnection(c *fiber.Ctx) error {
 		return integration.InvalidRequest(c, "invalid request body, err: "+err.Error())
 	}
 
-	if req.Sender == SenderUser {
+	if req.Sender != SenderNode {
 		return integration.InvalidRequest(c, "sender must be 1 (node)")
 	}
 
@@ -37,11 +36,6 @@ func initializeConnection(c *fiber.Ctx) error {
 	}
 
 	tk := util.GenerateToken(200)
-	pipesfiber.AddToken(tk, pipesfiber.ConnectionToken{
-		UserID:  req.Account,
-		Session: req.Session, // Again, this would be the room ID
-		Data:    nil,
-	})
 
 	_, valid := caching.GetRoom(req.Session)
 	if !valid {
