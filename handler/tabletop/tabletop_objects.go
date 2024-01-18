@@ -9,20 +9,22 @@ import (
 // Action: tobj_create
 func createObject(message wshandler.Message) {
 
-	if message.ValidateForm("location", "type", "data") {
+	if message.ValidateForm("x", "y", "type", "data") {
 		wshandler.ErrorResponse(message, "invalid")
 		return
 	}
 
-	location := message.Data["location"].(string)
+	x := message.Data["x"].(float64)
+	y := message.Data["y"].(float64)
 	objType := message.Data["type"].(string)
 	objData := message.Data["data"].(string)
 
 	object := &caching.TableObject{
-		Location: location,
-		Type:     objType,
-		Data:     objData,
-		Creator:  message.Client.ID,
+		LocationX: x,
+		LocationY: y,
+		Type:      objType,
+		Data:      objData,
+		Creator:   message.Client.ID,
 	}
 	err := caching.AddObjectToTable(message.Client.Session, object)
 	if err != nil {
@@ -35,7 +37,8 @@ func createObject(message wshandler.Message) {
 		Name: "tobj_created",
 		Data: map[string]interface{}{
 			"id":   object.ID,
-			"loc":  location,
+			"x":    x,
+			"y":    y,
 			"type": objType,
 			"data": objData,
 		},
@@ -110,12 +113,15 @@ func modifyObject(message wshandler.Message) {
 // Action: tobj_move
 func moveObject(message wshandler.Message) {
 
-	if message.ValidateForm("id", "location") {
+	if message.ValidateForm("id", "x", "y") {
 		wshandler.ErrorResponse(message, "invalid")
 		return
 	}
 
-	err := caching.ModifyTableObject(message.Client.Session, message.Data["id"].(string), message.Data["location"].(string))
+	x := message.Data["x"].(float64)
+	y := message.Data["y"].(float64)
+
+	err := caching.MoveTableObject(message.Client.Session, message.Data["id"].(string), x, y)
 	if err != nil {
 		wshandler.ErrorResponse(message, "server.error")
 		return
@@ -123,10 +129,12 @@ func moveObject(message wshandler.Message) {
 
 	// Notify other clients
 	valid := SendEventToMembers(message.Client.Session, pipes.Event{
-		Name: "tobj_modified",
+		Name: "tobj_moved",
 		Data: map[string]interface{}{
-			"id":   message.Data["id"].(string),
-			"data": message.Data["location"].(string),
+			"id": message.Data["id"].(string),
+			"s":  message.Client.ID,
+			"x":  x,
+			"y":  y,
 		},
 	})
 	if !valid {

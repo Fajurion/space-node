@@ -130,12 +130,13 @@ func LeaveTable(room string, client string) error {
 }
 
 type TableObject struct {
-	ID       string `json:"id"`
-	Location string `json:"loc"` // x:y encoded or sth
-	Type     string `json:"t"`
-	Creator  string `json:"c"` // ID of the creator
-	Holder   string `json:"h"` // ID of the current card holder (others can't move it while it's held)
-	Data     string `json:"d"` // Encrypted
+	ID        string  `json:"id"`
+	LocationX float64 `json:"x"`
+	LocationY float64 `json:"y"`
+	Type      string  `json:"t"`
+	Creator   string  `json:"c"` // ID of the creator
+	Holder    string  `json:"h"` // ID of the current card holder (others can't move it while it's held)
+	Data      string  `json:"d"` // Encrypted
 }
 
 // * Object helpers
@@ -207,7 +208,7 @@ func ModifyTableObject(room string, objectId string, data string) error {
 	return nil
 }
 
-func MoveTableObject(room string, objectId string, location string) error {
+func MoveTableObject(room string, objectId string, x, y float64) error {
 	obj, valid := tablesCache.Get(room)
 	if !valid {
 		return ErrTableNotFound
@@ -220,7 +221,8 @@ func MoveTableObject(room string, objectId string, location string) error {
 		return ErrObjectNotFound
 	}
 	object := tObj.(*TableObject)
-	object.Location = location
+	object.LocationX = x
+	object.LocationY = y
 
 	return nil
 }
