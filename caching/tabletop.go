@@ -5,6 +5,7 @@ import (
 	"slices"
 	"sync"
 
+	"fajurion.com/voice-node/util"
 	"github.com/dgraph-io/ristretto"
 )
 
@@ -28,27 +29,23 @@ func setupTablesCache() {
 	}
 }
 
+// Configuration
+const maxObjects = 100
+
 // Errors
 var (
 	ErrTableNotFound            = errors.New("table not found")
 	ErrClientAlreadyJoinedTable = errors.New("client already joined table")
 	ErrCouldntCreateTable       = errors.New("couldn't create table")
+	ErrObjectNotFound           = errors.New("one table object wasn't found")
 )
 
 type TableData struct {
-	Mutex   *sync.Mutex
-	Room    string
-	Members []string
-	Objects *ristretto.Cache // Cache for all objects on the table (Object ID -> Object)
-}
-
-type TableObject struct {
-	ID       string `json:"id"`
-	Location string `json:"loc"` // x:y encoded or sth
-	Type     string `json:"t"`
-	Creator  string `json:"c"` // ID of the creator
-	Holder   string `json:"h"` // ID of the current card holder (others can't move it while it's held)
-	Data     string `json:"d"` // Encrypted
+	Mutex      *sync.Mutex
+	Room       string
+	Members    []string
+	ObjectList []string         // List of all object ids
+	Objects    *ristretto.Cache // Cache for all objects on the table (Object ID -> Object)
 }
 
 // * Table management
@@ -125,15 +122,125 @@ func LeaveTable(room string, client string) error {
 	}
 	table.Mutex.Unlock()
 
+	if len(table.Members) == 0 {
+		tablesCache.Del(room)
+	}
+
 	return nil
 }
 
+type TableObject struct {
+	ID       string `json:"id"`
+	Location string `json:"loc"` // x:y encoded or sth
+	Type     string `json:"t"`
+	Creator  string `json:"c"` // ID of the creator
+	Holder   string `json:"h"` // ID of the current card holder (others can't move it while it's held)
+	Data     string `json:"d"` // Encrypted
+}
+
 // * Object helpers
-func GetObjectFromTable(room string, object TableObject) {
+func AddObjectToTable(room string, object *TableObject) error {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	table.Mutex.Lock()
+
+	// Generate random and unique id
+	id := util.GenerateToken(5)
+	for slices.Contains(table.ObjectList, id) {
+		id = util.GenerateToken(5)
+	}
+
+	// Put object into cache and list
+	table.ObjectList = append(table.ObjectList, id)
+	object.ID = id
+	table.Objects.Set(id, object, 1)
+	table.Objects.Wait()
+
+	table.Mutex.Unlock()
+
+	return nil
 }
 
-func AddObjectToTable(room string, object TableObject) {
+func RemoveObjectFromTable(room string, object string) error {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	table.Mutex.Lock()
+
+	// Put object into cache and list
+	for i, member := range table.ObjectList {
+		if member == object {
+			table.ObjectList = append(table.ObjectList[:i], table.ObjectList[i+1:]...)
+			break
+		}
+	}
+	table.Objects.Del(object)
+	table.Objects.Wait()
+
+	table.Mutex.Unlock()
+
+	return nil
 }
 
-func RemoveObjectFromTable(room string, object TableObject) {
+func ModifyTableObject(room string, objectId string, data string) error {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	// Modify object data
+	tObj, valid := table.Objects.Get(objectId)
+	if !valid {
+		return ErrObjectNotFound
+	}
+	object := tObj.(*TableObject)
+	object.Data = data
+
+	return nil
+}
+
+func MoveTableObject(room string, objectId string, location string) error {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	// Modify object data
+	tObj, valid := table.Objects.Get(objectId)
+	if !valid {
+		return ErrObjectNotFound
+	}
+	object := tObj.(*TableObject)
+	object.Location = location
+
+	return nil
+}
+
+func TableObjects(room string) ([]*TableObject, error) {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return nil, ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	objects := make([]*TableObject, len(table.ObjectList))
+	for i, value := range table.ObjectList {
+		object, valid := table.Objects.Get(value)
+		if !valid {
+			return nil, ErrObjectNotFound
+		}
+
+		objects[i] = object.(*TableObject)
+	}
+
+	return objects, nil
 }
