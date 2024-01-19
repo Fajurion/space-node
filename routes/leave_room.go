@@ -20,7 +20,9 @@ func leaveRoom(c *fiber.Ctx) error {
 
 	connections := pipesfiber.GetSessions(req.Connection)
 	if len(connections) == 0 {
-		return integration.SuccessfulRequest(c)
+		return c.JSON(fiber.Map{
+			"success": true,
+		})
 	}
 
 	for _, conn := range connections {
@@ -32,5 +34,7 @@ func leaveRoom(c *fiber.Ctx) error {
 		connection.Conn.Close()
 	}
 
-	return integration.SuccessfulRequest(c)
+	return c.JSON(fiber.Map{
+		"success": true,
+	})
 }

@@ -16,7 +16,7 @@ func createObject(message wshandler.Message) {
 
 	x := message.Data["x"].(float64)
 	y := message.Data["y"].(float64)
-	objType := message.Data["type"].(string)
+	objType := int(message.Data["type"].(float64))
 	objData := message.Data["data"].(string)
 
 	object := &caching.TableObject{
