@@ -133,10 +133,12 @@ type TableObject struct {
 	ID        string  `json:"id"`
 	LocationX float64 `json:"x"`
 	LocationY float64 `json:"y"`
+	Width     float64 `json:"w"`
+	Height    float64 `json:"h"`
 	Type      int     `json:"t"`
-	Creator   string  `json:"c"` // ID of the creator
-	Holder    string  `json:"h"` // ID of the current card holder (others can't move it while it's held)
-	Data      string  `json:"d"` // Encrypted
+	Creator   string  `json:"cr"` // ID of the creator
+	Holder    string  `json:"ho"` // ID of the current card holder (others can't move it while it's held)
+	Data      string  `json:"d"`  // Encrypted
 }
 
 // * Object helpers

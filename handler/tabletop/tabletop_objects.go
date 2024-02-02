@@ -9,19 +9,23 @@ import (
 // Action: tobj_create
 func createObject(message wshandler.Message) {
 
-	if message.ValidateForm("x", "y", "type", "data") {
+	if message.ValidateForm("x", "y", "w", "h", "type", "data") {
 		wshandler.ErrorResponse(message, "invalid")
 		return
 	}
 
 	x := message.Data["x"].(float64)
 	y := message.Data["y"].(float64)
+	width := message.Data["w"].(float64)
+	height := message.Data["h"].(float64)
 	objType := int(message.Data["type"].(float64))
 	objData := message.Data["data"].(string)
 
 	object := &caching.TableObject{
 		LocationX: x,
 		LocationY: y,
+		Width:     width,
+		Height:    height,
 		Type:      objType,
 		Data:      objData,
 		Creator:   message.Client.ID,
@@ -39,6 +43,8 @@ func createObject(message wshandler.Message) {
 			"id":   object.ID,
 			"x":    x,
 			"y":    y,
+			"w":    width,
+			"h":    height,
 			"type": objType,
 			"data": objData,
 		},
