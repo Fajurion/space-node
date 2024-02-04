@@ -124,6 +124,12 @@ func moveObject(message wshandler.Message) {
 		return
 	}
 
+	connection, valid := caching.GetConnection(message.Client.ID)
+	if !valid {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
 	x := message.Data["x"].(float64)
 	y := message.Data["y"].(float64)
 
@@ -134,11 +140,11 @@ func moveObject(message wshandler.Message) {
 	}
 
 	// Notify other clients
-	valid := SendEventToMembers(message.Client.Session, pipes.Event{
+	valid = SendEventToMembers(message.Client.Session, pipes.Event{
 		Name: "tobj_moved",
 		Data: map[string]interface{}{
 			"id": message.Data["id"].(string),
-			"s":  message.Client.ID,
+			"s":  connection.ClientID,
 			"x":  x,
 			"y":  y,
 		},

@@ -36,25 +36,3 @@ func SendEventToMembers(room string, event pipes.Event) bool {
 		Event:   event,
 	}) == nil
 }
-
-// Send an event to all table members (excluding the sender)
-func SendEventToMembersNoSelf(sender string, room string, event pipes.Event) bool {
-	valid, members := caching.TableMembers(room)
-	if !valid {
-		return false
-	}
-
-	// Remove the sender from the list
-	for i, member := range members {
-		if member == sender {
-			members = append(members[:i], members[i+1:]...)
-			break
-		}
-	}
-
-	return send.Pipe(send.ProtocolWS, pipes.Message{
-		Channel: pipes.BroadcastChannel(members),
-		Local:   true,
-		Event:   event,
-	}) == nil
-}
