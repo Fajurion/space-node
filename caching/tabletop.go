@@ -135,6 +135,7 @@ type TableObject struct {
 	LocationY float64 `json:"y"`
 	Width     float64 `json:"w"`
 	Height    float64 `json:"h"`
+	Rotation  float64 `json:"r"`
 	Type      int     `json:"t"`
 	Creator   string  `json:"cr"` // ID of the creator
 	Holder    string  `json:"ho"` // ID of the current card holder (others can't move it while it's held)
@@ -225,6 +226,24 @@ func MoveTableObject(room string, objectId string, x, y float64) error {
 	object := tObj.(*TableObject)
 	object.LocationX = x
 	object.LocationY = y
+
+	return nil
+}
+
+func RotateTableObject(room string, objectId string, rotation float64) error {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	// Modify object data
+	tObj, valid := table.Objects.Get(objectId)
+	if !valid {
+		return ErrObjectNotFound
+	}
+	object := tObj.(*TableObject)
+	object.Rotation = rotation
 
 	return nil
 }

@@ -18,6 +18,7 @@ func SetupHandler() {
 	wshandler.Routes["tobj_delete"] = deleteObject
 	wshandler.Routes["tobj_modify"] = modifyObject
 	wshandler.Routes["tobj_move"] = moveObject
+	wshandler.Routes["tobj_rotate"] = rotateObject
 
 	// Table cursor sending
 	wshandler.Routes["tc_move"] = moveCursor

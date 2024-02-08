@@ -9,7 +9,7 @@ import (
 // Action: tobj_create
 func createObject(message wshandler.Message) {
 
-	if message.ValidateForm("x", "y", "w", "h", "type", "data") {
+	if message.ValidateForm("x", "y", "w", "h", "r", "type", "data") {
 		wshandler.ErrorResponse(message, "invalid")
 		return
 	}
@@ -24,6 +24,7 @@ func createObject(message wshandler.Message) {
 	y := message.Data["y"].(float64)
 	width := message.Data["w"].(float64)
 	height := message.Data["h"].(float64)
+	rotation := message.Data["r"].(float64)
 	objType := int(message.Data["type"].(float64))
 	objData := message.Data["data"].(string)
 
@@ -32,6 +33,7 @@ func createObject(message wshandler.Message) {
 		LocationY: y,
 		Width:     width,
 		Height:    height,
+		Rotation:  rotation,
 		Type:      objType,
 		Data:      objData,
 		Creator:   message.Client.ID,
@@ -51,6 +53,7 @@ func createObject(message wshandler.Message) {
 			"y":    y,
 			"w":    width,
 			"h":    height,
+			"r":    rotation,
 			"type": objType,
 			"data": objData,
 			"c":    connection.ClientID,
@@ -157,6 +160,45 @@ func moveObject(message wshandler.Message) {
 			"s":  connection.ClientID,
 			"x":  x,
 			"y":  y,
+		},
+	})
+	if !valid {
+		wshandler.ErrorResponse(message, "server.error")
+		return
+	}
+
+	wshandler.SuccessResponse(message)
+}
+
+// Action: tobj_rotate
+func rotateObject(message wshandler.Message) {
+
+	if message.ValidateForm("id", "r") {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
+	connection, valid := caching.GetConnection(message.Client.ID)
+	if !valid {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
+	rotation := message.Data["r"].(float64)
+
+	err := caching.RotateTableObject(message.Client.Session, message.Data["id"].(string), rotation)
+	if err != nil {
+		wshandler.ErrorResponse(message, "server.error")
+		return
+	}
+
+	// Notify other clients
+	valid = SendEventToMembers(message.Client.Session, pipes.Event{
+		Name: "tobj_rotated",
+		Data: map[string]interface{}{
+			"id": message.Data["id"].(string),
+			"s":  connection.ClientID,
+			"r":  rotation,
 		},
 	})
 	if !valid {
