@@ -14,6 +14,12 @@ func createObject(message wshandler.Message) {
 		return
 	}
 
+	connection, valid := caching.GetConnection(message.Client.ID)
+	if !valid {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
 	x := message.Data["x"].(float64)
 	y := message.Data["y"].(float64)
 	width := message.Data["w"].(float64)
@@ -37,7 +43,7 @@ func createObject(message wshandler.Message) {
 	}
 
 	// Notify other clients
-	valid := SendEventToMembers(message.Client.Session, pipes.Event{
+	valid = SendEventToMembers(message.Client.Session, pipes.Event{
 		Name: "tobj_created",
 		Data: map[string]interface{}{
 			"id":   object.ID,
@@ -47,6 +53,7 @@ func createObject(message wshandler.Message) {
 			"h":    height,
 			"type": objType,
 			"data": objData,
+			"c":    connection.ClientID,
 		},
 	})
 	if !valid {
@@ -54,7 +61,10 @@ func createObject(message wshandler.Message) {
 		return
 	}
 
-	wshandler.SuccessResponse(message)
+	wshandler.NormalResponse(message, map[string]interface{}{
+		"success": true,
+		"id":      object.ID,
+	})
 }
 
 // Action: tobj_delete
