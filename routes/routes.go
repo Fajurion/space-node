@@ -93,9 +93,6 @@ func setupPipesFiber(router fiber.Router) {
 				return true
 			}
 
-			// Just for debug purposes
-			log.Println(base64.StdEncoding.EncodeToString(aesKey))
-
 			// Set AES key in client data
 			client.Data = ExtraClientData{aesKey}
 			pipesfiber.UpdateClient(client)
@@ -126,11 +123,8 @@ type ExtraClientData struct {
 // Middleware for pipes-fiber to add encryption support
 func EncryptionDecodingMiddleware(client *pipesfiber.Client, bytes []byte) (pipesfiber.Message, error) {
 
-	log.Println("DECRYPTING")
-
 	// Decrypt the message using AES
 	key := client.Data.(ExtraClientData).Key
-	log.Println(len(bytes))
 	messageEncoded, err := integration.DecryptAES(key, bytes)
 	if err != nil {
 		return pipesfiber.Message{}, err
@@ -142,8 +136,6 @@ func EncryptionDecodingMiddleware(client *pipesfiber.Client, bytes []byte) (pipe
 	if err != nil {
 		return pipesfiber.Message{}, err
 	}
-
-	log.Println("DECRYPTED")
 
 	return message, nil
 }
