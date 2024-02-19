@@ -52,8 +52,11 @@ func main() {
 
 	util.Log.Printf("Node %s on app %d\n", pipes.CurrentNode.ID, APP_ID)
 
-	pipes.SetupSocketless("http://" + domain + "/socketless")
-	pipes.SetupWS("ws://" + domain + "/adoption")
+	protocol := os.Getenv("WEBSOCKET_PROTOCOL")
+	if protocol == "" {
+		protocol = "wss://"
+	}
+	pipes.SetupWS(protocol + domain + "/connect")
 	handler.Initialize()
 
 	// Report online status
@@ -62,6 +65,9 @@ func main() {
 
 	// Check if test mode or production
 	args := strings.Split(domain, ":")
+	if os.Getenv("OVERWRITE_PORT") != "" {
+		args[1] = os.Getenv("OVERWRITE_PORT")
+	}
 	var err error
 	util.Port, err = strconv.Atoi(args[1])
 	if err != nil {
@@ -69,6 +75,7 @@ func main() {
 		return
 	}
 	util.UDPPort = util.Port + 1
+	pipes.SetupUDP(fmt.Sprintf("%s:%d", args[0], util.UDPPort))
 
 	// Test encryption
 	first := testEncryption()
@@ -178,9 +185,4 @@ func parseNodes(res map[string]interface{}) bool {
 	}
 
 	return false
-}
-
-func generateBase64Key() string {
-	bytes, _ := util.GenerateKey()
-	return base64.StdEncoding.EncodeToString(bytes)
 }

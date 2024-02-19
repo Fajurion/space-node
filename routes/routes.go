@@ -100,6 +100,7 @@ func setupPipesFiber(router fiber.Router) {
 			if integration.Testing {
 				log.Println("Client connected:", client.ID)
 			}
+
 			return false
 		},
 
@@ -112,7 +113,9 @@ func setupPipesFiber(router fiber.Router) {
 		DecodingMiddleware:       EncryptionDecodingMiddleware,
 		ClientEncodingMiddleware: EncryptionClientEncodingMiddleware,
 	})
-	router.Route("/", pipesfroutes.SetupRoutes)
+	router.Route("/", func(router fiber.Router) {
+		pipesfroutes.SetupRoutes(router, false)
+	})
 }
 
 // Extra client data attached to the pipes-fiber client
