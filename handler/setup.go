@@ -1,6 +1,7 @@
 package handler
 
 import (
+	integration "fajurion.com/node-integration"
 	"fajurion.com/voice-node/caching"
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipesfiber/wshandler"
@@ -25,7 +26,7 @@ func setupUDP(message wshandler.Message) {
 	}
 
 	if !SendRoomData(message.Client.Session) {
-		wshandler.ErrorResponse(message, "server.error")
+		wshandler.ErrorResponse(message, integration.ErrorServer)
 		return
 	}
 
