@@ -40,36 +40,22 @@ func Listen(domain string, port int) {
 
 		//* protocol standard: CLIENT_ID:HASH:VOICE_DATA
 		// Client ID: 10 bytes
-		// Verifier: variable length (till next ':')
+		// Verifier: 32 bytes
 		// Voice data: rest of the packet
 		go func(msg []byte) {
-			if len(msg) < 52 {
+			if len(msg) < 300 {
 				util.Log.Println("[udp] Error: Invalid message length")
 				return
 			}
 
 			// Verify connection
 			clientID := string(msg[0:10])
-			beginning := 11
-			end := beginning + 32 // Must be longer than 32 cause hash is 32 and encrypted = longer
-			found := false
-			for ; end < min(beginning+100, len(msg)); /* to prevent overflow */ end++ {
-				if msg[end] == ':' {
-					found = true
-					break
-				}
-			}
-			if !found {
-				util.Log.Println("[udp] Error: Invalid message format")
-				return
-			}
-			verifier := msg[beginning-1 : end]
-			voiceData := msg[end+1 : offset]
-			hashedData := util.Hash(voiceData)
+			hash := msg[10:42]
+			voiceData := msg[42:]
 
-			conn, valid := caching.VerifyUDP(clientID, clientAddr, hashedData, verifier)
+			conn, valid := caching.VerifyUDP(clientID, clientAddr, hash, voiceData)
 			if !valid {
-				util.Log.Println("[udp] Error: Could not verify connection")
+				util.Log.Println("[udp] Error: Could not verify connection or packet dropped")
 				return
 			}
 

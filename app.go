@@ -66,7 +66,11 @@ func main() {
 	// Check if test mode or production
 	args := strings.Split(domain, ":")
 	if os.Getenv("OVERWRITE_PORT") != "" {
-		args[1] = os.Getenv("OVERWRITE_PORT")
+		if len(args) < 2 {
+			args = append(args, os.Getenv("OVERWRITE_PORT"))
+		} else {
+			args[1] = os.Getenv("OVERWRITE_PORT")
+		}
 	}
 	var err error
 	util.Port, err = strconv.Atoi(args[1])

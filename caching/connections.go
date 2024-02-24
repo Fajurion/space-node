@@ -58,7 +58,7 @@ func setupConnectionsCache() {
 
 // packetHash = encrypted hash included in the packet by the client
 // hash = computed hash of the packet
-func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (Connection, bool) {
+func VerifyUDP(clientId string, udp net.Addr, hash []byte, voice []byte) (Connection, bool) {
 
 	// Get connection
 	connectionId, valid := clientIDCache.Get(clientId)
@@ -73,27 +73,12 @@ func VerifyUDP(clientId string, udp net.Addr, hash []byte, packetHash []byte) (C
 	conn := obj.(Connection)
 
 	// Verify hash
-	cipher, err := aes.NewCipher(conn.Key)
-	if err != nil {
-		util.Log.Println("Error: Couldn't create cipher:", err)
-		return Connection{}, false
-	}
+	merged := append(voice, conn.Key...)
+	computedHash := util.Hash(merged)
 
-	bytes, err := base64.StdEncoding.DecodeString(string(packetHash))
-	if err != nil {
-		util.Log.Println("Error: Couldn't decode hash:", err)
-		return Connection{}, false
-	}
-
-	decrypted, err := util.DecryptAES(cipher, bytes)
-	if err != nil {
-		util.Log.Println("Error: Couldn't decrypt hash:", err)
-		return Connection{}, false
-	}
-
-	if !util.CompareHash(decrypted, hash) {
+	if !util.CompareHash(computedHash, hash) {
 		util.Log.Println("Error: Hashes don't match")
-		util.Log.Println("Expected:", decrypted)
+		util.Log.Println("Expected:", computedHash)
 		util.Log.Println("Got:", hash)
 		return Connection{}, false
 	}
