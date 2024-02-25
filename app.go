@@ -39,6 +39,8 @@ func main() {
 		return
 	}
 
+	server.InitLiveKit()
+
 	launcher.InitGames()
 	pipes.SetupCurrent(fmt.Sprintf("%d", integration.NODE_ID), integration.NODE_TOKEN)
 	util.Log.Println("Starting..")
