@@ -11,7 +11,7 @@ func Initialize() {
 	games_actions.SetupActions()
 
 	wshandler.Routes["set_data"] = setData
-	wshandler.Routes["setup"] = setupUDP
+	wshandler.Routes["setup"] = setup
 	wshandler.Routes["update"] = update
 
 	tabletop_handlers.SetupHandler()
