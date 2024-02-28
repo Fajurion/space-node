@@ -38,7 +38,7 @@ func Listen(domain string, port int) {
 			continue
 		}
 
-		//* protocol standard: CLIENT_ID:HASH:VOICE_DATA
+		//* protocol standard: CLIENT_ID:VERIFIER:VOICE_DATA
 		// Client ID: 10 bytes
 		// Verifier: 32 bytes
 		// Voice data: rest of the packet

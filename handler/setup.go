@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 	"os"
 
 	integration "fajurion.com/node-integration"
@@ -9,6 +10,7 @@ import (
 	"fajurion.com/voice-node/server"
 	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipesfiber/wshandler"
+	"github.com/livekit/protocol/auth"
 	"github.com/livekit/protocol/livekit"
 )
 
@@ -45,15 +47,34 @@ func setup(message wshandler.Message) {
 	}
 
 	if len(rooms.Rooms) > 0 {
+
+		// Generate livekit token
+		token := server.RoomClient.CreateToken()
+		token.AddGrant(&auth.VideoGrant{
+			RoomJoin:          true,
+			Room:              message.Client.Session,
+			CanPublishSources: []string{"microphone"},
+		})
+		token.SetIdentity(connection.ClientID)
+
+		jwtToken, err := token.ToJWT()
+		if err != nil {
+			wshandler.ErrorResponse(message, integration.ErrorServer)
+			return
+		}
+
 		wshandler.NormalResponse(message, map[string]interface{}{
 			"success": true,
 			"id":      connection.ClientID,
 			"key":     connection.KeyBase64(),
 			"port":    util.UDPPort,
 			"url":     os.Getenv("LK_URL"),
+			"token":   jwtToken,
 		})
 		return
 	}
+
+	log.Println("creating new room for", message.Client.Session)
 
 	_, err = server.RoomClient.CreateRoom(context.Background(), &livekit.CreateRoomRequest{
 		Name:            message.Client.Session,
@@ -65,11 +86,26 @@ func setup(message wshandler.Message) {
 		return
 	}
 
+	// Generate livekit token
+	token := server.RoomClient.CreateToken()
+	token.AddGrant(&auth.VideoGrant{
+		RoomJoin:          true,
+		Room:              message.Client.Session,
+		CanPublishSources: []string{"microphone"},
+	})
+	token.SetIdentity(connection.ClientID)
+	jwtToken, err := token.ToJWT()
+	if err != nil {
+		wshandler.ErrorResponse(message, integration.ErrorServer)
+		return
+	}
+
 	wshandler.NormalResponse(message, map[string]interface{}{
 		"success": true,
 		"id":      connection.ClientID,
 		"key":     connection.KeyBase64(),
 		"port":    util.UDPPort,
 		"url":     os.Getenv("LK_URL"),
+		"token":   jwtToken,
 	})
 }
