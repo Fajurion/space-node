@@ -29,9 +29,6 @@ func setupTablesCache() {
 	}
 }
 
-// Configuration
-const maxObjects = 100
-
 // Errors
 var (
 	ErrTableNotFound            = errors.New("table not found")
@@ -138,7 +135,7 @@ type TableObject struct {
 	Rotation  float64 `json:"r"`
 	Type      int     `json:"t"`
 	Creator   string  `json:"cr"` // ID of the creator
-	Holder    string  `json:"ho"` // ID of the current card holder (others can't move it while it's held)
+	Holder    string  `json:"ho"` // ID of the current card holder (others can't move/modify it while it's held)
 	Data      string  `json:"d"`  // Encrypted
 }
 
@@ -206,6 +203,7 @@ func ModifyTableObject(room string, objectId string, data string) error {
 		return ErrObjectNotFound
 	}
 	object := tObj.(*TableObject)
+	object.Holder = ""
 	object.Data = data
 
 	return nil
@@ -266,4 +264,40 @@ func TableObjects(room string) ([]*TableObject, error) {
 	}
 
 	return objects, nil
+}
+
+func SelectTableObject(room string, objectId string, client string) error {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return ErrTableNotFound
+	}
+	table := obj.(*TableData)
+
+	// Modify object data
+	tObj, valid := table.Objects.Get(objectId)
+	if !valid {
+		return ErrObjectNotFound
+	}
+	object := tObj.(*TableObject)
+
+	if object.Holder != "" {
+		return errors.New("object already held")
+	}
+	object.Holder = client
+
+	return nil
+}
+
+func GetTableObject(room string, objectId string) (*TableObject, bool) {
+	obj, valid := tablesCache.Get(room)
+	if !valid {
+		return nil, false
+	}
+	table := obj.(*TableData)
+
+	tObj, valid := table.Objects.Get(objectId)
+	if !valid {
+		return nil, false
+	}
+	return tObj.(*TableObject), true
 }

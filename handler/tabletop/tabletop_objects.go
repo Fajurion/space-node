@@ -2,6 +2,7 @@ package tabletop_handlers
 
 import (
 	"fajurion.com/voice-node/caching"
+	"fajurion.com/voice-node/util"
 	"github.com/Fajurion/pipes"
 	"github.com/Fajurion/pipesfiber/wshandler"
 )
@@ -99,11 +100,52 @@ func deleteObject(message wshandler.Message) {
 	wshandler.SuccessResponse(message)
 }
 
+// Action: tobj_select
+func selectObject(message wshandler.Message) {
+
+	if message.ValidateForm("id") {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
+	connection, valid := caching.GetConnection(message.Client.ID)
+	if !valid {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
+	// Grab hold of it
+	err := caching.SelectTableObject(message.Client.Session, message.Data["id"].(string), connection.ClientID)
+	if err != nil {
+		wshandler.ErrorResponse(message, util.ErrorTabletopInvalidAction)
+		return
+	}
+
+	wshandler.SuccessResponse(message)
+}
+
 // Action: tobj_modify
 func modifyObject(message wshandler.Message) {
 
 	if message.ValidateForm("id", "data") {
 		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
+	connection, valid := caching.GetConnection(message.Client.ID)
+	if !valid {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+
+	// Check if the object is held by the client
+	obj, valid := caching.GetTableObject(message.Client.Session, message.Data["id"].(string))
+	if !valid {
+		wshandler.ErrorResponse(message, "invalid")
+		return
+	}
+	if obj.Holder != connection.ClientID {
+		wshandler.ErrorResponse(message, util.ErrorTabletopInvalidAction)
 		return
 	}
 
@@ -114,7 +156,7 @@ func modifyObject(message wshandler.Message) {
 	}
 
 	// Notify other clients
-	valid := SendEventToMembers(message.Client.Session, pipes.Event{
+	valid = SendEventToMembers(message.Client.Session, pipes.Event{
 		Name: "tobj_modified",
 		Data: map[string]interface{}{
 			"id":   message.Data["id"].(string),
@@ -137,12 +179,6 @@ func moveObject(message wshandler.Message) {
 		return
 	}
 
-	connection, valid := caching.GetConnection(message.Client.ID)
-	if !valid {
-		wshandler.ErrorResponse(message, "invalid")
-		return
-	}
-
 	x := message.Data["x"].(float64)
 	y := message.Data["y"].(float64)
 
@@ -153,11 +189,10 @@ func moveObject(message wshandler.Message) {
 	}
 
 	// Notify other clients
-	valid = SendEventToMembers(message.Client.Session, pipes.Event{
+	valid := SendEventToMembers(message.Client.Session, pipes.Event{
 		Name: "tobj_moved",
 		Data: map[string]interface{}{
 			"id": message.Data["id"].(string),
-			"s":  connection.ClientID,
 			"x":  x,
 			"y":  y,
 		},

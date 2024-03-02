@@ -16,6 +16,7 @@ func SetupHandler() {
 	// Table object management
 	wshandler.Routes["tobj_create"] = createObject
 	wshandler.Routes["tobj_delete"] = deleteObject
+	wshandler.Routes["tobj_select"] = selectObject
 	wshandler.Routes["tobj_modify"] = modifyObject
 	wshandler.Routes["tobj_move"] = moveObject
 	wshandler.Routes["tobj_rotate"] = rotateObject
