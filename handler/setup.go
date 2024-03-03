@@ -53,7 +53,7 @@ func setup(message wshandler.Message) {
 		token.AddGrant(&auth.VideoGrant{
 			RoomJoin:          true,
 			Room:              message.Client.Session,
-			CanPublishSources: []string{"microphone"},
+			CanPublishSources: []string{"microphone", "camera"},
 		})
 		token.SetIdentity(connection.ClientID)
 
@@ -91,7 +91,7 @@ func setup(message wshandler.Message) {
 	token.AddGrant(&auth.VideoGrant{
 		RoomJoin:          true,
 		Room:              message.Client.Session,
-		CanPublishSources: []string{"microphone"},
+		CanPublishSources: []string{"microphone", "camera"},
 	})
 	token.SetIdentity(connection.ClientID)
 	jwtToken, err := token.ToJWT()
