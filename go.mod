@@ -1,6 +1,6 @@
 module fajurion.com/voice-node
 
-go 1.21
+go 1.22.1
 
 require (
 	fajurion.com/node-integration v0.0.0-00010101000000-000000000000

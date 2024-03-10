@@ -10,6 +10,7 @@ pipes-fiber/*
 
 .env
 app-linux
+data.node
 
 # Build files
 app
